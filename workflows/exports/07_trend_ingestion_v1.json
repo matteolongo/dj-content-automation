@@ -1,0 +1,344 @@
+{
+  "name": "trend_ingestion_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6abf919c-da8e-409e-9a9d-253851980195",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cf54fdd0-82cd-4986-acef-da12c19d4569",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            },
+            {
+              "id": "53ba3b66-eec8-4406-aed4-76cff644d090",
+              "name": "search_query",
+              "value": "tiktok instagram reel trends underground electronic dj house music april 2026",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "dc18ffd9-efe6-4dff-9791-f9f9246986e2",
+      "name": "Set trend search"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{$json.search_query}}"
+            },
+            {
+              "name": "topic",
+              "value": "general"
+            },
+            {
+              "name": "search_depth",
+              "value": "basic"
+            },
+            {
+              "name": "max_results",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "fb1b820b-631d-478b-859c-2f96d67a0a76",
+      "name": "Tavily search",
+      "credentials": {
+        "openAiApi": {
+          "id": "TRPfmbdpCj6hFWMi",
+          "name": "OpenAI account"
+        },
+        "httpHeaderAuth": {
+          "id": "3kDazPdCZF3mTp1b",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json;\n\nconst results = Array.isArray(response.results) ? response.results : [];\n\nif (results.length === 0) {\n  throw new Error('No Tavily results returned');\n}\n\nconst simplified = results.map((r, index) => ({\n  rank: index + 1,\n  title: r.title || '',\n  url: r.url || '',\n  content: r.content || ''\n}));\n\nreturn [\n  {\n    json: {\n      week_id: $('Set trend search').first().json.week_id,\n      search_query: $('Set trend search').first().json.search_query,\n      tavily_results: simplified\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "f76e7703-f11b-4b39-9a2b-850f6659cfdf",
+      "name": "Extract tavily results"
+    },
+    {
+      "parameters": {
+        "jsCode": "const weekId = $json.week_id;\nconst searchQuery = $json.search_query;\nconst results = $json.tavily_results || [];\n\nconst prompt = `\nYou are a social media trend analyst specialized in underground electronic music and DJ branding.\n\nYour task is to analyze web search results and extract only the trends that are relevant for a niche underground electronic DJ brand.\n\nBRAND CONTEXT:\n- Groovy, emotional electronic music\n- Underground, elegant, minimal, mysterious\n- Avoid generic influencer trends\n- Avoid meme-heavy trends\n- Focus on formats, hooks, and social patterns that can be adapted authentically\n\nSEARCH QUERY:\n${searchQuery}\n\nSEARCH RESULTS:\n${JSON.stringify(results, null, 2)}\n\nOUTPUT FORMAT (STRICT JSON):\n{\n  \"trend_text\": \"A concise summary of the most relevant social content trends for this week, in plain English, 80 to 140 words.\",\n  \"raw_summary\": \"A slightly longer explanation of why these trends matter for this DJ brand.\"\n}\n\nIMPORTANT:\n- Return ONLY valid JSON\n- No markdown\n- No explanations\n`;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      search_query: searchQuery,\n      prompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "9f55fe90-5c9c-4c2c-b653-689ff7e7903d",
+      "name": "Build trend prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4.1-mini"
+            },
+            {
+              "name": "input",
+              "value": "={{$json.prompt}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "eb5cd2a9-9103-4b3e-9a14-c198130f3f46",
+      "name": "OpenAI trend summarizer",
+      "credentials": {
+        "openAiApi": {
+          "id": "TRPfmbdpCj6hFWMi",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let response = $json;\n\nlet text = null;\n\nif (response.output && Array.isArray(response.output)) {\n  for (const item of response.output) {\n    if (item.content && Array.isArray(item.content)) {\n      for (const content of item.content) {\n        if (content.type === 'output_text' && content.text) {\n          text = content.text;\n          break;\n        }\n      }\n    }\n    if (text) break;\n  }\n}\n\nif (!text) {\n  throw new Error('Could not find output text in OpenAI response');\n}\n\ntext = text.trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (err) {\n  throw new Error(`Failed to parse trend JSON: ${err.message}\\nRaw text:\\n${text}`);\n}\n\nconst weekId = $('Build trend prompt').first().json.week_id;\nconst searchQuery = $('Build trend prompt').first().json.search_query;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      trend_text: parsed.trend_text || '',\n      source_query: searchQuery,\n      raw_summary: parsed.raw_summary || ''\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "d4cb574b-1bd2-4e13-b805-6512c1724440",
+      "name": "Parse trend summary"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 15405210,
+          "mode": "list",
+          "cachedResultName": "trends_input",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=15405210"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "week_id": "={{$json.week_id}}",
+            "trend_text": "={{$json.trend_text}}",
+            "source_query": "={{$json.source_query}}",
+            "raw_summary": "={{$json.raw_summary}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "week_id",
+              "displayName": "week_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "trend_text",
+              "displayName": "trend_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_query",
+              "displayName": "source_query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_summary",
+              "displayName": "raw_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1456,
+        0
+      ],
+      "id": "9c66bff2-d188-4383-8be3-e8079181788c",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set trend search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set trend search": {
+      "main": [
+        [
+          {
+            "node": "Tavily search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily search": {
+      "main": [
+        [
+          {
+            "node": "Extract tavily results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract tavily results": {
+      "main": [
+        [
+          {
+            "node": "Build trend prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build trend prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI trend summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI trend summarizer": {
+      "main": [
+        [
+          {
+            "node": "Parse trend summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse trend summary": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1a804ffd-c874-4140-8332-e858b9cffddb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "NCSmCWqPB0Z4hBWe",
+  "tags": []
+}
