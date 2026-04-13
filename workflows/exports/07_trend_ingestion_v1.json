@@ -104,7 +104,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const weekId = $json.week_id;\nconst searchQuery = $json.search_query;\nconst results = $json.tavily_results || [];\n\nconst prompt = `\nYou are a social media trend analyst specialized in underground electronic music and DJ branding.\n\nYour task is to analyze web search results and extract only the trends that are relevant for a niche underground electronic DJ brand.\n\nBRAND CONTEXT:\n- Groovy, emotional electronic music\n- Underground, elegant, minimal, mysterious\n- Avoid generic influencer trends\n- Avoid meme-heavy trends\n- Focus on formats, hooks, and social patterns that can be adapted authentically\n\nSEARCH QUERY:\n${searchQuery}\n\nSEARCH RESULTS:\n${JSON.stringify(results, null, 2)}\n\nOUTPUT FORMAT (STRICT JSON):\n{\n  \"trend_text\": \"A concise summary of the most relevant social content trends for this week, in plain English, 80 to 140 words.\",\n  \"raw_summary\": \"A slightly longer explanation of why these trends matter for this DJ brand.\"\n}\n\nIMPORTANT:\n- Return ONLY valid JSON\n- No markdown\n- No explanations\n`;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      search_query: searchQuery,\n      prompt\n    }\n  }\n];"
+        "jsCode": "const weekId = $json.week_id;\nconst searchQuery = $json.search_query;\nconst results = $json.tavily_results || [];\n\nconst prompt = `\nYou are a social media trend analyst specialized in underground electronic music and DJ branding.\n\nYour task is to analyze web search results and extract only the trends that are relevant for a niche underground electronic DJ brand.\n\nBRAND CONTEXT:\n- Groovy, emotional electronic music\n- Underground, elegant, minimal, mysterious\n- Avoid generic influencer trends\n- Avoid meme-heavy trends\n- Focus on formats, hooks, and social patterns that can be adapted authentically\n\nSEARCH RESULTS:\n${JSON.stringify(results, null, 2)}\n\nOUTPUT FORMAT (STRICT JSON):\n{\n  \"trend_text\": \"A concise summary of the most relevant social content trends for this week, in plain English, 80 to 140 words.\",\n  \"raw_summary\": \"A slightly longer explanation of why these trends matter for this DJ brand.\"\n}\n\nIMPORTANT:\n- Return ONLY valid JSON\n- No markdown\n- No explanations\n`;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      search_query: searchQuery,\n      prompt\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -334,7 +334,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "1a804ffd-c874-4140-8332-e858b9cffddb",
+  "versionId": "2a7260a2-fc3c-4a42-a384-354f94a94e8f",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
