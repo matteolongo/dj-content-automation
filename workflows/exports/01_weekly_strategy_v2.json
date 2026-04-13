@@ -14,45 +14,16 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json;\n\n// prova a trovare il testo nella risposta OpenAI\nlet text = null;\n\nif (response.output && Array.isArray(response.output)) {\n  for (const item of response.output) {\n    if (item.content && Array.isArray(item.content)) {\n      for (const content of item.content) {\n        if (content.type === 'output_text' && content.text) {\n          text = content.text;\n          break;\n        }\n      }\n    }\n    if (text) break;\n  }\n}\n\nif (!text) {\n  throw new Error('Could not find output_text in OpenAI response');\n}\n\n// pulizia base\ntext = text.trim();\n\n// parse JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (err) {\n  throw new Error(`Failed to parse model JSON: ${err.message}\\nRaw text:\\n${text}`);\n}\n\n// week_id dal flusso precedente\nconst weekId = $('Set trends').first().json.week_id;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      theme: parsed.week_theme,\n      trend_summary: parsed.trend_fit_summary,\n      asset_request_message: parsed.asset_request_message,\n      status: 'waiting_assets',\n      content_plan_json: JSON.stringify(parsed.content_plan)\n    }\n  }\n];"
+        "jsCode": "const response = $json;\n\n// prova a trovare il testo nella risposta OpenAI\nlet text = null;\n\nif (response.output && Array.isArray(response.output)) {\n  for (const item of response.output) {\n    if (item.content && Array.isArray(item.content)) {\n      for (const content of item.content) {\n        if (content.type === 'output_text' && content.text) {\n          text = content.text;\n          break;\n        }\n      }\n    }\n    if (text) break;\n  }\n}\n\nif (!text) {\n  throw new Error('Could not find output_text in OpenAI response');\n}\n\n// pulizia base\ntext = text.trim();\n\n// parse JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (err) {\n  throw new Error(`Failed to parse model JSON: ${err.message}\\nRaw text:\\n${text}`);\n}\n\n// week_id dal flusso precedente\nconst weekId = $('Set week_id').first().json.week_id;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      theme: parsed.week_theme,\n      trend_summary: parsed.trend_fit_summary,\n      asset_request_message: parsed.asset_request_message,\n      status: 'waiting_assets',\n      content_plan_json: JSON.stringify(parsed.content_plan)\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
+        976,
         0
       ],
       "id": "eb408c6b-264c-45de-923d-33cab3be9d4d",
       "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "3a4183fc-28cb-4d47-9dde-95d65f9dee2c",
-              "name": "week_id",
-              "value": "test-week-01",
-              "type": "string"
-            },
-            {
-              "id": "6bb102b7-c6db-4193-9746-9e8dd4e9724e",
-              "name": "trend_text",
-              "value": "Short DJ POV clips with intimate booth moments, low light red visuals, authentic crowd reactions, minimal captions, and non-commercial underground storytelling perform well this week.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        224,
-        224
-      ],
-      "id": "dc643bc5-d250-47e8-b61b-2cde59d60ec1",
-      "name": "Set trends"
     },
     {
       "parameters": {
@@ -136,7 +107,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        720,
+        1136,
         0
       ],
       "id": "61cbc018-13c9-4209-94ee-833e20a95591",
@@ -198,7 +169,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        400,
+        688,
         224
       ],
       "id": "f8f9fe05-ec3e-4a1e-a12f-2700044dec20",
@@ -218,7 +189,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        416,
+        832,
         0
       ],
       "id": "25432685-2ce0-436c-bd3e-7a1abf19f0c8",
@@ -240,7 +211,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        928,
+        1344,
         0
       ],
       "id": "17bc8fd5-6a83-4e36-afe0-d8c86d99e551",
@@ -252,6 +223,88 @@
           "name": "Gmail account"
         }
       }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3a4183fc-28cb-4d47-9dde-95d65f9dee2c",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        224
+      ],
+      "id": "dc643bc5-d250-47e8-b61b-2cde59d60ec1",
+      "name": "Set week_id"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 15405210,
+          "mode": "list",
+          "cachedResultName": "trends_input",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=15405210"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        224
+      ],
+      "id": "dfff1014-8bf9-463c-908b-4dfe0495a0fd",
+      "name": "Read trends_input",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const targetWeekId = $('Set week_id').first().json.week_id;\nconst items = $input.all();\n\nconst match = items\n  .map(item => item.json)\n  .find(row => row.week_id === targetWeekId);\n\nif (!match) {\n  throw new Error(`No trend_text found for week_id=${targetWeekId}`);\n}\n\nreturn [\n  {\n    json: {\n      week_id: targetWeekId,\n      trend_text: match.trend_text || '',\n      source_query: match.source_query || '',\n      raw_summary: match.raw_summary || ''\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        224
+      ],
+      "id": "2871b87f-2bb3-4d91-bf94-a217931de1f5",
+      "name": "Filter trend_input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const brand = $('Get brand profile').first().json;\nconst trend = $('Filter trend_input').first().json;\n\nconst prompt = `\nYou are a senior social media strategist specialized in underground electronic music DJs.\n\nYour task is to generate a weekly content strategy based on:\n1) the artist identity\n2) current trend signals\n\nARTIST PROFILE:\nArtist name: ${brand.artist_name || ''}\nTone: ${brand.tone || ''}\nColors: ${brand.colors || ''}\nAudience: ${brand.audience || ''}\nGoals: ${brand.goals || ''}\nAnti-patterns: ${brand.anti_patterns || ''}\n\nINPUT TRENDS:\n${trend.trend_text || ''}\n\nCONSTRAINTS:\n- Exactly 3 posts\n- English only\n- Content must feel underground, elegant, emotional\n- No generic ideas\n- No meme-based formats\n- No content that feels commercial or influencer-like\n- Focus on authenticity and identity\n\nOUTPUT FORMAT (STRICT JSON ONLY):\n{\n  \"week_theme\": \"string\",\n  \"trend_fit_summary\": \"string\",\n  \"content_plan\": [\n    {\n      \"post_number\": 1,\n      \"content_type\": \"raw_club_energy | dj_pov | artistic_identity\",\n      \"goal\": \"string\",\n      \"required_assets\": [\"string\", \"string\"]\n    },\n    {\n      \"post_number\": 2,\n      \"content_type\": \"string\",\n      \"goal\": \"string\",\n      \"required_assets\": [\"string\", \"string\"]\n    },\n    {\n      \"post_number\": 3,\n      \"content_type\": \"string\",\n      \"goal\": \"string\",\n      \"required_assets\": [\"string\", \"string\"]\n    }\n  ],\n  \"asset_request_message\": \"string\"\n}\n\nIMPORTANT:\n- Return ONLY valid JSON\n- Do not add explanations\n- Do not include markdown\n- Do not include comments\n`;\n\nreturn [\n  {\n    json: {\n      week_id: trend.week_id,\n      prompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        224
+      ],
+      "id": "8a945e55-9866-4b79-8a96-a05bfc9573e6",
+      "name": "Build weekly strategy prompt"
     }
   ],
   "pinData": {},
@@ -261,17 +314,6 @@
         [
           {
             "node": "Get brand profile",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set trends": {
-      "main": [
-        [
-          {
-            "node": "Generate prompt weekly streategy",
             "type": "main",
             "index": 0
           }
@@ -293,7 +335,7 @@
       "main": [
         [
           {
-            "node": "Set trends",
+            "node": "Set week_id",
             "type": "main",
             "index": 0
           }
@@ -332,6 +374,50 @@
           }
         ]
       ]
+    },
+    "Set week_id": {
+      "main": [
+        [
+          {
+            "node": "Read trends_input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read trends_input": {
+      "main": [
+        [
+          {
+            "node": "Filter trend_input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter trend_input": {
+      "main": [
+        [
+          {
+            "node": "Build weekly strategy prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build weekly strategy prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate prompt weekly streategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -340,7 +426,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "cf231fbe-3b7c-4393-b6e7-3ac8a4cf3c31",
+  "versionId": "a836275a-a59c-4e37-a2a3-48a90a4f697e",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
