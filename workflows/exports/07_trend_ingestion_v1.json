@@ -9,7 +9,7 @@
         0,
         0
       ],
-      "id": "6abf919c-da8e-409e-9a9d-253851980195",
+      "id": "769d26d0-9215-4b65-9424-cd22202de1c8",
       "name": "When clicking ‘Execute workflow’"
     },
     {
@@ -19,7 +19,7 @@
             {
               "id": "cf54fdd0-82cd-4986-acef-da12c19d4569",
               "name": "week_id",
-              "value": "test-week-01",
+              "value": "test-week-02",
               "type": "string"
             },
             {
@@ -38,7 +38,7 @@
         208,
         0
       ],
-      "id": "dc18ffd9-efe6-4dff-9791-f9f9246986e2",
+      "id": "3de2b8f6-1ea5-406a-b2cf-b17ace12c0db",
       "name": "Set trend search"
     },
     {
@@ -46,7 +46,7 @@
         "method": "POST",
         "url": "https://api.tavily.com/search",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "genericAuthType": "httpBearerAuth",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -76,16 +76,12 @@
         416,
         0
       ],
-      "id": "fb1b820b-631d-478b-859c-2f96d67a0a76",
+      "id": "d62f4101-01f9-4772-a764-3254434350d2",
       "name": "Tavily search",
       "credentials": {
-        "openAiApi": {
-          "id": "TRPfmbdpCj6hFWMi",
-          "name": "OpenAI account"
-        },
-        "httpHeaderAuth": {
-          "id": "3kDazPdCZF3mTp1b",
-          "name": "Header Auth account"
+        "httpBearerAuth": {
+          "id": "aLtm3zrho5jCaTsP",
+          "name": "Bearer Auth account"
         }
       }
     },
@@ -99,7 +95,7 @@
         624,
         0
       ],
-      "id": "f76e7703-f11b-4b39-9a2b-850f6659cfdf",
+      "id": "327755d3-fb88-456e-9fce-efe10423f7ba",
       "name": "Extract tavily results"
     },
     {
@@ -112,7 +108,7 @@
         832,
         0
       ],
-      "id": "9f55fe90-5c9c-4c2c-b653-689ff7e7903d",
+      "id": "bac4eea4-0143-4899-878f-2362a606754f",
       "name": "Build trend prompt"
     },
     {
@@ -142,11 +138,11 @@
         1040,
         0
       ],
-      "id": "eb5cd2a9-9103-4b3e-9a14-c198130f3f46",
+      "id": "000e25a2-6ec6-4df9-bfed-4ca2f94626db",
       "name": "OpenAI trend summarizer",
       "credentials": {
         "openAiApi": {
-          "id": "TRPfmbdpCj6hFWMi",
+          "id": "ySB6INGRi8kfBMam",
           "name": "OpenAI account"
         }
       }
@@ -161,7 +157,7 @@
         1248,
         0
       ],
-      "id": "d4cb574b-1bd2-4e13-b805-6512c1724440",
+      "id": "9f02f661-8d8f-4eb5-928f-589ce6d16e3e",
       "name": "Parse trend summary"
     },
     {
@@ -239,11 +235,11 @@
         1456,
         0
       ],
-      "id": "9c66bff2-d188-4383-8be3-e8079181788c",
-      "name": "Append row in sheet",
+      "id": "b1451f04-e4a8-4bd4-b2b1-4cff6b6c50e8",
+      "name": "Append trends_input",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "cV0oeOxcOBIf4TIg",
+          "id": "boUExPCyLKSdMtmV",
           "name": "Google Sheets account"
         }
       }
@@ -321,7 +317,7 @@
       "main": [
         [
           {
-            "node": "Append row in sheet",
+            "node": "Append trends_input",
             "type": "main",
             "index": 0
           }
@@ -334,11 +330,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "2a7260a2-fc3c-4a42-a384-354f94a94e8f",
+  "versionId": "6cc1a696-2fcf-441e-9d1b-a8a88d0f213e",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+    "instanceId": "692ecdc509ddc479a32e62f771b03cdddf40e236877bb0306264b93c84e75835"
   },
-  "id": "NCSmCWqPB0Z4hBWe",
+  "id": "XDXGviVcYTOZeKsW",
   "tags": []
 }
