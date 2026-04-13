@@ -1,0 +1,305 @@
+{
+  "name": "asset_intake_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0242a194-b83a-4f65-a378-f275dc443b12",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "'1-HqjaBbOnG2Qgn2iHzehRn1cuPC6io0G' in parents",
+        "returnAll": true,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "8b5e810d-0bed-4513-8ab7-b6ff201ae905",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "FHsHc2CL8DTOKPrE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{$json.id}}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "e7ace2fc-d46f-4312-889f-b29e87bf8ed9",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "FHsHc2CL8DTOKPrE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst json = item.json || {};\nconst binary = item.binary || {};\n\nconst data = binary.data || {};\n\nconst mime = data.mimeType || '';\nconst fileName = data.fileName || '';\nconst fileExtension = data.fileExtension || '';\nconst fileSize = data.fileSize || '';\n\nlet assetType = 'photo';\n\nif (mime.includes('video')) {\n  assetType = 'video';\n} else if (mime.includes('image')) {\n  assetType = 'photo';\n} else {\n  const lower = fileName.toLowerCase();\n  if (\n    lower.endsWith('.mp4') ||\n    lower.endsWith('.mov') ||\n    lower.endsWith('.m4v') ||\n    lower.endsWith('.avi')\n  ) {\n    assetType = 'video';\n  }\n}\n\nconst originalSearchNode = $('Search files and folders').first().json;\nconst weekId = $('Set week_id').first().json.week_id;\n\nreturn [\n  {\n    json: {\n      asset_id: originalSearchNode.id || '',\n      week_id: weekId,\n      file_url: `https://drive.google.com/uc?export=view&id=${originalSearchNode.id}`,\n      asset_type: assetType,\n      source: 'drive',\n      file_name: fileName,\n      file_extension: fileExtension,\n      file_size: fileSize,\n      mime_type: mime\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "338532cf-e1ba-40de-aa85-0e1b527e0299",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c52f7ec5-9a11-47c6-b086-12dfbe514399",
+              "name": "weed_id",
+              "value": "test-week-1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c760081e-c67c-42df-84e4-0cf2fa8db31a",
+      "name": "Set week_id"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2122443337,
+          "mode": "list",
+          "cachedResultName": "assets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=2122443337"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "asset_id": "={{$json.asset_id}}",
+            "week_id": "={{$('Set week_id').first().json.weed_id}}",
+            "file_url": "={{$json.file_url}}",
+            "asset_type": "={{$json.asset_type}}",
+            "source": "={{$json.source}}",
+            "file_name": "={{$json.file_name}}",
+            "file_extension": "={{$json.file_extension}}",
+            "file_size": "={{$json.file_size}}",
+            "mime_type": "={{$json.mime_type}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "asset_id",
+              "displayName": "asset_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "week_id",
+              "displayName": "week_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_url",
+              "displayName": "file_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "asset_type",
+              "displayName": "asset_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_extension",
+              "displayName": "file_extension",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_size",
+              "displayName": "file_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mime_type",
+              "displayName": "mime_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1008,
+        0
+      ],
+      "id": "7ce0ef24-1361-4b79-894b-3714ddfa3c61",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set week_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set week_id": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5836e352-b933-468d-b376-0f95a1e63ab8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "Qh9X6UQLH8UQ1PCi",
+  "tags": []
+}

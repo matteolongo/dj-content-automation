@@ -1,0 +1,220 @@
+{
+  "name": "weekly_strategy_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "25a4c045-dad8-4e28-add3-084e5ba6b53e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "brand_profile",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f414edc3-58a4-4cf4-8731-2e56f5c38463",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3a4183fc-28cb-4d47-9dde-95d65f9dee2c",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            },
+            {
+              "id": "6bb102b7-c6db-4193-9746-9e8dd4e9724e",
+              "name": "trend_text",
+              "value": "Short DJ POV clips with intimate booth moments, low light red visuals, authentic crowd reactions, minimal captions, and non-commercial underground storytelling perform well this week.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        0
+      ],
+      "id": "8bffccd3-76c1-470d-a4c3-e20ea0ce1102",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cc4dc07-9cad-4464-9961-5824bd071796",
+              "name": "prompt",
+              "value": "=You are a senior social media strategist specialized in underground electronic music DJs.  Your task is to generate a weekly content strategy based on: 1) the artist identity 2) current trend signals  ARTIST PROFILE: Artist name: {{$json.artist_name}} Tone: {{$json.tone}} Colors: {{$json.colors}} Audience: {{$json.audience}} Goals: {{$json.goals}} Anti-patterns: {{$json.anti_patterns}}  INPUT TRENDS: {{$json.trend_text}}  CONSTRAINTS: - Exactly 3 posts - English only - Content must feel underground, elegant, emotional - No generic ideas - No meme-based formats - No content that feels commercial or influencer-like - Focus on authenticity and identity  OUTPUT FORMAT (STRICT JSON ONLY): {   \"week_theme\": \"string\",   \"trend_fit_summary\": \"string\",   \"content_plan\": [     {       \"post_number\": 1,       \"content_type\": \"raw_club_energy | dj_pov | artistic_identity\",       \"goal\": \"string\",       \"required_assets\": [\"string\", \"string\"]     },     {       \"post_number\": 2,       \"content_type\": \"string\",       \"goal\": \"string\",       \"required_assets\": [\"string\", \"string\"]     },     {       \"post_number\": 3,       \"content_type\": \"string\",       \"goal\": \"string\",       \"required_assets\": [\"string\", \"string\"]     }   ],   \"asset_request_message\": \"string\" }  IMPORTANT: - Return ONLY valid JSON - Do not add explanations - Do not include markdown - Do not include comments",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        0
+      ],
+      "id": "430334c3-ac9a-495f-bb05-0cb0b78e5ac5",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4.1-mini\",\n  \"input\": \"{{$json.prompt.replaceAll('\"', \"'\")}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        768,
+        0
+      ],
+      "id": "b7c0092b-1d50-408b-afa3-cccb53fffc82",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Zwe6YWaqBmT2DmEJ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec439b6f-e34c-49b7-9375-ef08eed21fad",
+              "name": "=raw_response",
+              "value": "={{ JSON.stringify($json.output) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        0
+      ],
+      "id": "32e03282-138f-4f8e-8021-5ac9b5b3b8ea",
+      "name": "Edit Fields2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "48c15007-79ab-4a49-af12-3f8ee85d5f18",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "tdSAvStGyALV8GuY",
+  "tags": []
+}

@@ -1,0 +1,446 @@
+{
+  "name": "content_generation_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c8be970b-fcd1-4bcb-90b1-a978ffc6a5cf",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2129644612,
+          "mode": "list",
+          "cachedResultName": "weekly_plan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=2129644612"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "week_id",
+              "lookupValue": "={{ $json.week_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "d72d70e4-aaf4-4954-9e56-627e74377b53",
+      "name": "Read weekly_plan",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8a7749f3-dcdc-45ec-bc7f-fa1baff439de",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0704d2f1-8dad-460e-aebe-c513e0d3d112",
+      "name": "Set week_id"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2122443337,
+          "mode": "list",
+          "cachedResultName": "assets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=2122443337"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "d507b874-bee2-46e2-bb28-08fc0d3af981",
+      "name": "Read assets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const targetWeekId = $('Set week_id').first().json.week_id;\nconst items = $input.all();\nconsole.log(targetWeekId);\nconst assets = items\n  .map(item => item.json)\n  .filter(row => row.week_id == targetWeekId);\n\nif (assets.length === 0) {\n  throw new Error(`No assets found for week_id=${targetWeekId}`);\n}\n\nreturn [\n  {\n    json: {\n      week_id: targetWeekId,\n      assets\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "fe13df42-1d39-42ea-a89e-a893ed7ecc91",
+      "name": "Filter assets"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        16
+      ],
+      "id": "11374c54-4c1a-439d-96d4-b9c3e5bad870",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\n\nconst weekId = item.week_id || item.week_id_2 || '';\nconst theme = item.theme || '';\nconst trendSummary = item.trend_summary || '';\nconst assetRequestMessage = item.asset_request_message || '';\nconst assets = item.assets || [];\n\nconst weeklyPlan = {\n  week_id: weekId,\n  theme,\n  trend_summary: trendSummary,\n  asset_request_message: assetRequestMessage\n};\n\nconst assetList = assets.map((a, index) => ({\n  asset_id: a.asset_id,\n  asset_type: a.asset_type,\n  file_url: a.file_url,\n  file_name: a.file_name || `asset_${index + 1}`\n}));\n\nconst prompt = `\nYou are the content engine for a niche underground electronic DJ brand.\n\nYour job is to generate 3 social media posts that feel authentic, distinctive, and aligned with the artist identity.\n\nARTIST PROFILE:\nStyle: Groovy, emotional electronic music with strong identity\nGenres: House / Electronic with balearic influence, minimal, deep, indie dance touches\nTone: Energetic, emotional, minimal, mysterious, elegant, slightly ironic\nVisual identity: Red, black, cream; club, minimal setups, urban night\nAudience: 20–35, club-oriented, underground, taste-driven\n\nANTI-PATTERNS (STRICT):\n- generic DJ captions (\"what a night\", \"crazy energy\", etc.)\n- influencer tone\n- fake hype\n- over-explaining\n- emojis overload\n- mainstream or commercial vibe\n\nWEEKLY PLAN:\n${JSON.stringify(weeklyPlan, null, 2)}\n\nAVAILABLE ASSETS:\n${JSON.stringify(assetList, null, 2)}\n\nRULES:\n- English only\n- Generate exactly 3 posts\n- Each post must feel unique and intentional\n- Keep captions concise and evocative\n- Avoid clichés completely\n- Do NOT invent facts (events, crowds, locations, etc.)\n- Do NOT mention visual editing\n- Stay grounded in authenticity\n- Subtle irony is allowed but must be minimal\n- Hashtags must be relevant, not spammy\n\nOUTPUT FORMAT (STRICT JSON):\n{\n  \"posts\": [\n    {\n      \"post_number\": 1,\n      \"content_type\": \"string\",\n      \"asset_ids\": [\"id1\", \"id2\"],\n      \"instagram_caption\": \"string\",\n      \"instagram_short_caption\": \"string\",\n      \"tiktok_caption\": \"string\",\n      \"hashtags\": [\"tag1\", \"tag2\", \"tag3\"],\n      \"posting_recommendation\": {\n        \"day\": \"string\",\n        \"time_window\": \"string\"\n      },\n      \"rationale\": \"short explanation of why this works\"\n    },\n    {\n      \"post_number\": 2,\n      \"content_type\": \"string\",\n      \"asset_ids\": [\"id1\"],\n      \"instagram_caption\": \"string\",\n      \"instagram_short_caption\": \"string\",\n      \"tiktok_caption\": \"string\",\n      \"hashtags\": [\"tag1\", \"tag2\", \"tag3\"],\n      \"posting_recommendation\": {\n        \"day\": \"string\",\n        \"time_window\": \"string\"\n      },\n      \"rationale\": \"short explanation of why this works\"\n    },\n    {\n      \"post_number\": 3,\n      \"content_type\": \"string\",\n      \"asset_ids\": [\"id1\"],\n      \"instagram_caption\": \"string\",\n      \"instagram_short_caption\": \"string\",\n      \"tiktok_caption\": \"string\",\n      \"hashtags\": [\"tag1\", \"tag2\", \"tag3\"],\n      \"posting_recommendation\": {\n        \"day\": \"string\",\n        \"time_window\": \"string\"\n      },\n      \"rationale\": \"short explanation of why this works\"\n    }\n  ]\n}\n\nIMPORTANT:\n- Return ONLY valid JSON\n- No markdown\n- No explanations\n`;\n\nreturn [\n  {\n    json: {\n      week_id: weekId,\n      prompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        16
+      ],
+      "id": "ed0bf8d9-52b5-44a5-b19a-2640908651ba",
+      "name": "Build content prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4.1-mini"
+            },
+            {
+              "name": "input",
+              "value": "={{$json.prompt}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1536,
+        16
+      ],
+      "id": "2112376e-53f5-4870-bcca-5e3a562bad25",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Zwe6YWaqBmT2DmEJ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let response = $json;\n\nlet text = null;\n\nif (response.output && Array.isArray(response.output)) {\n  for (const item of response.output) {\n    if (item.content && Array.isArray(item.content)) {\n      for (const content of item.content) {\n        if (content.type === 'output_text' && content.text) {\n          text = content.text;\n          break;\n        }\n      }\n    }\n    if (text) break;\n  }\n}\n\nif (!text) {\n  throw new Error('Could not find output text in OpenAI response');\n}\n\ntext = text.trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (err) {\n  throw new Error(`Failed to parse content generation JSON: ${err.message}\\nRaw text:\\n${text}`);\n}\n\nconst weekId = $('Build content prompt').first().json.week_id;\nconst posts = parsed.posts || [];\n\nif (!Array.isArray(posts) || posts.length === 0) {\n  throw new Error('No posts returned by model');\n}\n\nreturn posts.map((post, index) => ({\n  json: {\n    draft_id: `${weekId}-post-${post.post_number || index + 1}`,\n    week_id: weekId,\n    post_number: post.post_number || index + 1,\n    content_type: post.content_type || '',\n    caption: post.instagram_caption || '',\n    hashtags: Array.isArray(post.hashtags) ? post.hashtags.join(', ') : '',\n    asset_ids: Array.isArray(post.asset_ids) ? post.asset_ids.join(', ') : '',\n    approval_status: 'pending'\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        16
+      ],
+      "id": "c87c2bc9-9964-4c21-b402-60ead4a4bc5b",
+      "name": "Parse generated posts"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 135706205,
+          "mode": "list",
+          "cachedResultName": "content_drafts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=135706205"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "draft_id": "={{ $json.draft_id }}",
+            "week_id": "={{ $json.week_id }}",
+            "post_number": "={{ $json.post_number }}",
+            "content_type": "={{ $json.content_type }}",
+            "caption": "={{ $json.caption }}",
+            "hashtags": "={{ $json.hashtags }}",
+            "asset_ids": "={{ $json.asset_ids }}",
+            "approval_status": "={{ $json.approval_status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "week_id",
+              "displayName": "week_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_number",
+              "displayName": "post_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hashtags",
+              "displayName": "hashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "asset_ids",
+              "displayName": "asset_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval_status",
+              "displayName": "approval_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1952,
+        16
+      ],
+      "id": "5ff5ef78-14b0-4776-8968-92c79cf29659",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set week_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set week_id": {
+      "main": [
+        [
+          {
+            "node": "Read weekly_plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read weekly_plan": {
+      "main": [
+        [
+          {
+            "node": "Read assets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read assets": {
+      "main": [
+        [
+          {
+            "node": "Filter assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter assets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Build content prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build content prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Parse generated posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse generated posts": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4f7e983a-9247-4d12-9c0c-cdec2c8bbadb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "HXGR50ZL4bgsrpG1",
+  "tags": []
+}

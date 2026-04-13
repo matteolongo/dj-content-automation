@@ -1,0 +1,200 @@
+{
+  "name": "test_sheets_rw",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7a6d6a21-1513-4c54-94f3-90644454bda2",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "brand_profile",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d77a1c4f-7f2e-4c95-b0de-7903c33c586e",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n\"week_id\": \"test-week\",\n\"theme\": \"test theme\",\n\"trend_summary\": \"test summary\",\n\"asset_request_message\":\"send 3 photos\",\n\"status\":\"test\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "648f5cd7-6a7a-4c6f-bce9-be348ec45636",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2129644612,
+          "mode": "list",
+          "cachedResultName": "weekly_plan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=2129644612"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "week_id",
+              "displayName": "week_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "theme",
+              "displayName": "theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "trend_summary",
+              "displayName": "trend_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "asset_request_message",
+              "displayName": "asset_request_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "424c5039-d6c3-4a8f-a10b-0239d4fb605b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fe2db53f-52fc-4c26-bef9-6ca934309bf6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "qgte2XXm3ztkD6hH",
+  "tags": []
+}

@@ -1,0 +1,308 @@
+{
+  "name": "populate_review_queue_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cf636f0f-52ce-44e3-86e0-99b7bacaedc4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3d0e87de-3f7b-49af-b877-d7d9c789a269",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "964f4bb1-3795-49b3-8957-41d634efd422",
+      "name": "Set week_id"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 135706205,
+          "mode": "list",
+          "cachedResultName": "content_drafts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=135706205"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        0
+      ],
+      "id": "5244c835-f7b3-4b12-b74e-49acef115b43",
+      "name": "Read content_drafts",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const targetWeekId = $('Set week_id').first().json.week_id;\nconst items = $input.all();\n\nconst drafts = items\n  .map(item => item.json)\n  .filter(row => row.week_id === targetWeekId);\n\nif (drafts.length === 0) {\n  throw new Error(`No drafts found for week_id=${targetWeekId}`);\n}\n\nreturn drafts.map(draft => ({\n  json: {\n    draft_id: draft.draft_id || '',\n    week_id: draft.week_id || '',\n    post_number: draft.post_number || '',\n    content_type: draft.content_type || '',\n    caption: draft.caption || '',\n    hashtags: draft.hashtags || '',\n    asset_ids: draft.asset_ids || '',\n    approval_status: draft.approval_status || 'pending',\n    scheduled_date: '',\n    scheduled_time: '',\n    platform: 'instagram,tiktok',\n    notes: ''\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        0
+      ],
+      "id": "d8d09e4f-9bb2-4039-b399-bbf166904b4d",
+      "name": "Filter drafts for review_queue"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 499512074,
+          "mode": "list",
+          "cachedResultName": "review_queue",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=499512074"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "draft_id": "={{ $json.draft_id }}",
+            "week_id": "={{ $json.week_id }}",
+            "post_number": "={{ $json.post_number }}",
+            "content_type": "={{ $json.content_type }}",
+            "caption": "={{ $json.caption }}",
+            "hashtags": "={{ $json.hashtags }}",
+            "asset_ids": "={{ $json.asset_ids }}",
+            "approval_status": "={{ $json.approval_status }}",
+            "scheduled_date": "={{ $json.scheduled_date }}",
+            "scheduled_time": "={{ $json.scheduled_time }}",
+            "platform": "={{ $json.platform }}",
+            "notes": "={{ $json.notes }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "week_id",
+              "displayName": "week_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_number",
+              "displayName": "post_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hashtags",
+              "displayName": "hashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "asset_ids",
+              "displayName": "asset_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval_status",
+              "displayName": "approval_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scheduled_date",
+              "displayName": "scheduled_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scheduled_time",
+              "displayName": "scheduled_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        736,
+        0
+      ],
+      "id": "1fdf4a2e-e238-4dee-9bd7-a2fa6e4bbacd",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set week_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read content_drafts": {
+      "main": [
+        [
+          {
+            "node": "Filter drafts for review_queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set week_id": {
+      "main": [
+        [
+          {
+            "node": "Read content_drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter drafts for review_queue": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c068751b-288f-4554-864e-943f37b3879b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "BPIgZ57LH2Er9Q0n",
+  "tags": []
+}

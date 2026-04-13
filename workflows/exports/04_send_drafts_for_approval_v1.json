@@ -1,0 +1,191 @@
+{
+  "name": "send_drafts_for_approval_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "74ec99ac-a083-4ef6-a506-c1b31e21e950",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c6b9315-a75e-4f0b-802c-8818bea9b275",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7dc2cfb7-bca4-467d-8cfd-65ce15a7db08",
+      "name": "Set week_id"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 135706205,
+          "mode": "list",
+          "cachedResultName": "content_drafts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=135706205"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e58df969-0548-456f-9d27-1983b16dd041",
+      "name": "Read drafts",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const targetWeekId = $('Set week_id').first().json.week_id;\nconst items = $input.all();\n\nconst drafts = items\n  .map(item => item.json)\n  .filter(row => row.week_id === targetWeekId);\n\nif (drafts.length === 0) {\n  throw new Error(`No drafts found for week_id=${targetWeekId}`);\n}\n\nreturn [\n  {\n    json: {\n      week_id: targetWeekId,\n      drafts\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "5d833d84-4d18-490d-ba6e-363a2ded0b86",
+      "name": "Filter drafts"
+    },
+    {
+      "parameters": {
+        "jsCode": "const weekId = $json.week_id;\nconst drafts = $json.drafts || [];\n\nconst sortedDrafts = drafts.sort((a, b) => Number(a.post_number) - Number(b.post_number));\n\nlet html = `\n<h2>🎧 Content Drafts Ready</h2>\n<p><strong>Week:</strong> ${weekId}</p>\n<hr/>\n`;\n\nfor (const draft of sortedDrafts) {\n\n  const assetIds = (draft.asset_ids || '').split(',').map(s => s.trim());\n\n  let imagesHtml = '';\n  for (const id of assetIds) {\n    if (!id) continue;\n    const imgUrl = `https://drive.google.com/uc?export=view&id=${id}`;\n    imagesHtml += `\n      <img src=\"${imgUrl}\" style=\"max-width:300px; margin:10px 0; border-radius:6px;\" />\n      <br/>\n    `;\n  }\n\n  html += `\n    <div style=\"margin-bottom:40px;\">\n      <h3>Post ${draft.post_number}</h3>\n      \n      ${imagesHtml}\n\n      <p><strong>Content Type:</strong> ${draft.content_type}</p>\n\n      <p><strong>Caption:</strong><br/>\n      ${draft.caption}</p>\n\n      <p><strong>Hashtags:</strong><br/>\n      ${draft.hashtags}</p>\n\n      <p><strong>Status:</strong> ${draft.approval_status}</p>\n    </div>\n    <hr/>\n  `;\n}\n\nhtml += `\n<h3>Approval Instructions</h3>\n<p>Reply with:</p>\n<ul>\n  <li><b>OK ALL</b></li>\n  <li><b>OK 1</b></li>\n  <li><b>EDIT 2: your change</b></li>\n  <li><b>SKIP 3</b></li>\n</ul>\n`;\n\nreturn [\n  {\n    json: {\n      subject: `Content Drafts for Approval — ${weekId}`,\n      html\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        0
+      ],
+      "id": "17adc8d4-c751-46e3-b151-d636d0cda80e",
+      "name": "Build approval email"
+    },
+    {
+      "parameters": {
+        "sendTo": "matteolongo0@gmail.com",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.html}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "8303afd2-869c-463a-a2fb-ecb900552e72",
+      "name": "Send a message",
+      "webhookId": "2140dd66-78a0-4bde-b692-c278d3af5f4a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XM48yt7lDiwwkXgG",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set week_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set week_id": {
+      "main": [
+        [
+          {
+            "node": "Read drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read drafts": {
+      "main": [
+        [
+          {
+            "node": "Filter drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter drafts": {
+      "main": [
+        [
+          {
+            "node": "Build approval email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build approval email": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3e7185f4-b6f6-4e74-907a-6bf1217caa41",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "Sa97V4QodvNpECEw",
+  "tags": []
+}

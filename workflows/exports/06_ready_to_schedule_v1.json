@@ -1,0 +1,191 @@
+{
+  "name": "ready_to_schedule_v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "14afd465-322a-4223-a5e0-4df32149e5b9",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "596ed292-b943-4292-b0a0-9a7abf592d8c",
+              "name": "week_id",
+              "value": "test-week-01",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f0c6c908-ea03-4108-b3c7-d11e1839ef94",
+      "name": "Set week_id"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ",
+          "mode": "list",
+          "cachedResultName": "dj-content-mvp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 499512074,
+          "mode": "list",
+          "cachedResultName": "review_queue",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NTixIa-fWMI-x3OeJ-r0TjYT81cergI2gXSNKRcjZSQ/edit#gid=499512074"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "86d6bf0f-1b3f-4eb0-86d3-bf408fb39c7a",
+      "name": "Read review_queue",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cV0oeOxcOBIf4TIg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const targetWeekId = $('Set week_id').first().json.week_id;\nconst items = $input.all();\n\nconst approvedPosts = items\n  .map(item => item.json)\n  .filter(row =>\n    row.week_id === targetWeekId &&\n    String(row.approval_status || '').toLowerCase() === 'approved'\n  );\n\nif (approvedPosts.length === 0) {\n  throw new Error(`No approved posts found for week_id=${targetWeekId}`);\n}\n\nreturn [\n  {\n    json: {\n      week_id: targetWeekId,\n      approved_posts: approvedPosts\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "43153fbe-9e16-4bb1-a60e-673f91d30e6d",
+      "name": "Filter approved posts"
+    },
+    {
+      "parameters": {
+        "jsCode": "const weekId = $json.week_id;\nconst posts = $json.approved_posts || [];\n\nconst sortedPosts = posts.sort((a, b) => Number(a.post_number) - Number(b.post_number));\n\nlet html = `\n<h2>✅ Approved Posts Ready to Schedule</h2>\n<p><strong>Week:</strong> ${weekId}</p>\n<hr/>\n`;\n\nfor (const post of sortedPosts) {\n  const assetIds = (post.asset_ids || '').split(',').map(s => s.trim()).filter(Boolean);\n\n  let imagesHtml = '';\n  for (const id of assetIds) {\n    const imgUrl = `https://drive.google.com/uc?export=view&id=${id}`;\n    imagesHtml += `\n      <img src=\"${imgUrl}\" style=\"max-width:300px; margin:10px 0; border-radius:6px;\" />\n      <br/>\n    `;\n  }\n\n  html += `\n    <div style=\"margin-bottom:40px;\">\n      <h3>Post ${post.post_number}</h3>\n\n      ${imagesHtml}\n\n      <p><strong>Content Type:</strong> ${post.content_type}</p>\n      <p><strong>Platforms:</strong> ${post.platform || ''}</p>\n      <p><strong>Scheduled Date:</strong> ${post.scheduled_date || ''}</p>\n      <p><strong>Scheduled Time:</strong> ${post.scheduled_time || ''}</p>\n\n      <p><strong>Caption:</strong><br/>\n      ${post.caption || ''}</p>\n\n      <p><strong>Hashtags:</strong><br/>\n      ${post.hashtags || ''}</p>\n\n      <p><strong>Notes:</strong><br/>\n      ${post.notes || ''}</p>\n    </div>\n    <hr/>\n  `;\n}\n\nreturn [\n  {\n    json: {\n      subject: `Approved Posts Ready to Schedule — ${weekId}`,\n      html,\n      text: `Approved posts ready to schedule for ${weekId}`\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "dca56731-ab71-4e01-b372-f2b8fb87ba7a",
+      "name": "Build ready-to-schedule email"
+    },
+    {
+      "parameters": {
+        "sendTo": "matteolongo0@gmail.com",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.html}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "45146e07-3224-4375-87a9-8f0dc9aec164",
+      "name": "Send a message",
+      "webhookId": "6841e2f1-7956-48f8-a9d7-23f7f7151dd8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XM48yt7lDiwwkXgG",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set week_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set week_id": {
+      "main": [
+        [
+          {
+            "node": "Read review_queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read review_queue": {
+      "main": [
+        [
+          {
+            "node": "Filter approved posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter approved posts": {
+      "main": [
+        [
+          {
+            "node": "Build ready-to-schedule email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build ready-to-schedule email": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4e7c941e-3f80-47a8-a005-f3be4353b73f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
+  },
+  "id": "QcKAaQmWEzeBptEG",
+  "tags": []
+}
