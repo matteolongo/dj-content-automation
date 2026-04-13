@@ -80,7 +80,7 @@
           "assignments": [
             {
               "id": "c52f7ec5-9a11-47c6-b086-12dfbe514399",
-              "name": "weed_id",
+              "name": "weedk_id",
               "value": "test-week-1",
               "type": "string"
             }
@@ -295,7 +295,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "5836e352-b933-468d-b376-0f95a1e63ab8",
+  "versionId": "96cdb490-7422-47b7-87d9-e4de757e0274",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "d62c178785e3d3ef54cdcfbddcd3b67ea7bd48dca9f387f3859cdfb3d624b8a7"
