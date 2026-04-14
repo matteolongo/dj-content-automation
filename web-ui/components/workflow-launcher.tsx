@@ -12,7 +12,7 @@ const WORKFLOW_OPTIONS: Array<{
   {
     key: 'weekly_strategy',
     label: 'Weekly strategy',
-    description: 'Build the theme and asset request from the current trend note.',
+    description: 'Build the theme and asset request from the trend note.',
     needsTrendText: true
   },
   {
@@ -33,12 +33,12 @@ const WORKFLOW_OPTIONS: Array<{
   {
     key: 'ready_to_schedule',
     label: 'Ready to schedule',
-    description: 'Build a final handoff preview for approved posts.'
+    description: 'Build a final handoff preview for all approved posts.'
   },
   {
     key: 'full_pipeline',
     label: 'Run full pipeline',
-    description: 'Weekly strategy, asset intake, content generation, and review queue.',
+    description: 'Strategy → asset intake → content generation → review queue.',
     needsTrendText: true
   }
 ];
@@ -98,7 +98,8 @@ function statusClass(status: string) {
 
 export function WorkflowLauncher() {
   const [weekId, setWeekId] = useState(defaultWeekId);
-  const [trendText, setTrendText] = useState('');
+  const [trendWhat, setTrendWhat] = useState('');
+  const [trendWhy, setTrendWhy] = useState('');
   const [runs, setRuns] = useState<WorkflowRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<WorkflowKey | ''>('');
@@ -168,8 +169,8 @@ export function WorkflowLauncher() {
   async function startRun(workflowKey: WorkflowKey) {
     const workflow = WORKFLOW_OPTIONS.find((option) => option.key === workflowKey);
 
-    if (workflow?.needsTrendText && !trendText.trim()) {
-      setError('Trend text is required for weekly strategy and the full pipeline.');
+    if (workflow?.needsTrendText && !trendWhat.trim()) {
+      setError('Trend text is required for Weekly Strategy and the Full Pipeline.');
       return;
     }
 
@@ -186,7 +187,14 @@ export function WorkflowLauncher() {
         body: JSON.stringify({
           workflow_key: workflowKey,
           week_id: weekId.trim(),
-          trend_text: trendText.trim()
+          trend_text: trendWhat.trim()
+            ? [
+                `What's trending: ${trendWhat.trim()}`,
+                trendWhy.trim() ? `Why it fits this artist: ${trendWhy.trim()}` : ''
+              ]
+                .filter(Boolean)
+                .join('\n\n')
+            : ''
         })
       });
 
@@ -215,14 +223,10 @@ export function WorkflowLauncher() {
 
   return (
     <section className="launcher">
-      <div className="launcher-hero">
-        <div>
+      <div className="launcher-header">
+        <div className="launcher-title">
           <p className="eyebrow">Workflow console</p>
-          <h2>Run the weekly pipeline from the UI.</h2>
-          <p className="lede">
-            Kick off one workflow or the full chain, then watch the run history and review board
-            update as soon as generated drafts land in Sheets.
-          </p>
+          <h2>Run the weekly pipeline.</h2>
         </div>
 
         <div className="hero-note launcher-note">
@@ -240,25 +244,40 @@ export function WorkflowLauncher() {
         <div className="launcher-panel">
           <div className="panel-header">
             <div>
-              <h3>Run inputs</h3>
-              <p>Use the same `week_id` across all workflow steps.</p>
+              <h3>Inputs</h3>
+              <p>Shared across all workflow steps.</p>
             </div>
           </div>
 
           <div className="editor-form launcher-form">
+            <div className="trend-input-block">
+              <p className="trend-block-label">
+                Trend input
+                <em className="trend-required">Required for strategy steps</em>
+              </p>
+              <label>
+                <span>What&apos;s trending this week</span>
+                <textarea
+                  rows={3}
+                  value={trendWhat}
+                  placeholder="e.g. slow-burn hypnotic sets, lo-fi club footage, crowd-less atmosphere shots…"
+                  onChange={(event) => setTrendWhat(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Why it fits this artist <em className="field-optional">(optional)</em></span>
+                <textarea
+                  rows={2}
+                  value={trendWhy}
+                  placeholder="e.g. aligns with the dark minimal direction, contrasts the usual polished DJ aesthetic…"
+                  onChange={(event) => setTrendWhy(event.target.value)}
+                />
+              </label>
+            </div>
+
             <label>
               <span>Week ID</span>
               <input value={weekId} onChange={(event) => setWeekId(event.target.value)} />
-            </label>
-
-            <label>
-              <span>Trend text</span>
-              <textarea
-                rows={8}
-                value={trendText}
-                placeholder="Paste the weekly trend note here before running strategy or the full pipeline."
-                onChange={(event) => setTrendText(event.target.value)}
-              />
             </label>
           </div>
         </div>
@@ -286,38 +305,38 @@ export function WorkflowLauncher() {
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="launcher-panel">
-        <div className="panel-header">
-          <div>
-            <h3>Recent runs</h3>
-            <p>{loading ? 'Loading run history…' : `${recentRuns.length} most recent runs`}</p>
+        <div className="launcher-panel launcher-runs-panel">
+          <div className="panel-header">
+            <div>
+              <h3>Recent runs</h3>
+              <p>{loading ? 'Loading…' : `${recentRuns.length} most recent`}</p>
+            </div>
           </div>
-        </div>
 
-        <div className="run-list">
-          {recentRuns.length === 0 && !loading ? (
-            <div className="panel-placeholder">No tracked workflow runs yet.</div>
-          ) : null}
+          <div className="run-list">
+            {recentRuns.length === 0 && !loading ? (
+              <div className="panel-placeholder">No tracked runs yet.</div>
+            ) : null}
 
-          {recentRuns.map((run) => (
-            <article key={run.run_id} className="run-card">
-              <div className="run-card-top">
-                <div>
-                  <p className="draft-meta">
-                    {run.workflow_key} · {run.week_id}
-                  </p>
-                  <h4>{formatTime(run.started_at)}</h4>
+            {recentRuns.map((run) => (
+              <article key={run.run_id} className="run-card">
+                <div className="run-card-top">
+                  <div>
+                    <p className="draft-meta">
+                      {run.workflow_key} · {run.week_id}
+                    </p>
+                    <h4>{formatTime(run.started_at)}</h4>
+                  </div>
+                  <span className={statusClass(run.status)}>{statusLabel(run.status)}</span>
                 </div>
-                <span className={statusClass(run.status)}>{statusLabel(run.status)}</span>
-              </div>
 
-              <p className="run-summary">{run.output_summary || 'No summary yet.'}</p>
+                <p className="run-summary">{run.output_summary || 'No summary yet.'}</p>
 
-              {run.error_message ? <p className="run-error">{run.error_message}</p> : null}
-            </article>
-          ))}
+                {run.error_message ? <p className="run-error">{run.error_message}</p> : null}
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </section>

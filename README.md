@@ -106,6 +106,22 @@ Open the review UI at:
 http://localhost:3000
 ```
 
+## Import workflows in bulk
+
+If you want to load every exported workflow into n8n at once, start the stack first and then run:
+
+```bash
+bash scripts/import_workflows.sh
+```
+
+That script calls the n8n CLI inside the running container and imports every JSON file in `workflows/exports/`.
+
+If you prefer the raw command, it is:
+
+```bash
+docker compose exec -u node n8n n8n import:workflow --separate --input=/workspace/workflows/exports
+```
+
 Stop it with:
 
 ```bash

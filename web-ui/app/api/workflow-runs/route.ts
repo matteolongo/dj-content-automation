@@ -17,6 +17,10 @@ export async function GET() {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    // Sheet tab doesn't exist yet (first run) — return empty history instead of an error
+    if (message.includes('Unable to parse range') || message.includes('notFound')) {
+      return NextResponse.json({ runs: [] }, { headers: { 'Cache-Control': 'no-store' } });
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

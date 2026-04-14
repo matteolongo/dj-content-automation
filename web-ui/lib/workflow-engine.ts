@@ -37,6 +37,7 @@ const WORKFLOW_COLUMNS = {
     'post_number',
     'content_type',
     'caption',
+    'tiktok_caption',
     'hashtags',
     'asset_ids',
     'approval_status'
@@ -47,6 +48,7 @@ const WORKFLOW_COLUMNS = {
     'post_number',
     'content_type',
     'caption',
+    'tiktok_caption',
     'hashtags',
     'asset_ids',
     'approval_status',
@@ -562,6 +564,7 @@ IMPORTANT:
       post_number: String(postNumber),
       content_type: normalizeText(post.content_type),
       caption: normalizeText(post.instagram_caption || post.instagram_short_caption || ''),
+      tiktok_caption: normalizeText(post.tiktok_caption || ''),
       hashtags: hashtags.join(', '),
       asset_ids: assetIds.join(', '),
       approval_status: 'pending'
@@ -595,6 +598,7 @@ async function runPopulateReviewQueue(progress: WorkflowProgress) {
     post_number: normalizeText(draft.post_number),
     content_type: normalizeText(draft.content_type),
     caption: normalizeText(draft.caption),
+    tiktok_caption: normalizeText(draft.tiktok_caption),
     hashtags: normalizeText(draft.hashtags),
     asset_ids: normalizeText(draft.asset_ids),
     approval_status: normalizeText(draft.approval_status) || 'pending',
@@ -735,4 +739,121 @@ export async function listWorkflowRunHistory() {
   const runs = await loadWorkflowRuns();
 
   return runs.slice().reverse();
+}
+
+export async function regenerateDraft(draftId: string, weekId: string, notes: string) {
+  const [brand, weeklyPlan, assets] = await Promise.all([
+    loadBrandProfile(),
+    loadLatestRowByWeekId('weekly_plan', weekId),
+    loadRowsByWeekId('assets', weekId)
+  ]);
+
+  if (!weeklyPlan) {
+    throw new Error(`No weekly_plan found for week_id=${weekId}`);
+  }
+
+  const reviewParsed = await readSheetTable('review_queue');
+  const existingRow = reviewParsed.rows.find(
+    (row) => normalizeText(row.values.draft_id) === draftId
+  );
+
+  if (!existingRow) {
+    throw new Error(`Draft ${draftId} not found in review_queue`);
+  }
+
+  const existing = existingRow.values;
+
+  const prompt = `
+You are revising a single social post for an underground electronic DJ brand.
+
+ARTIST PROFILE:
+Artist name: ${normalizeText(brand.artist_name)}
+Tone: ${normalizeText(brand.tone)}
+Colors: ${normalizeText(brand.colors)}
+Audience: ${normalizeText(brand.audience)}
+Goals: ${normalizeText(brand.goals)}
+Anti-patterns: ${normalizeText(brand.anti_patterns)}
+
+WEEKLY PLAN:
+${JSON.stringify(weeklyPlan, null, 2)}
+
+AVAILABLE ASSETS:
+${JSON.stringify(assets, null, 2)}
+
+ORIGINAL DRAFT (post ${normalizeText(existing.post_number)}):
+Content type: ${normalizeText(existing.content_type)}
+Instagram caption: ${normalizeText(existing.caption)}
+TikTok caption: ${normalizeText(existing.tiktok_caption)}
+Hashtags: ${normalizeText(existing.hashtags)}
+
+REVISION NOTES FROM THE DJ:
+${notes.trim() || 'Improve the caption while keeping the same concept and tone.'}
+
+RULES:
+- English only
+- Keep post_number: ${normalizeText(existing.post_number)}
+- Keep content_type: ${normalizeText(existing.content_type)}
+- Incorporate the revision notes — they are the primary instruction
+- Stay authentic to the artist's underground electronic identity
+- Never invent facts, events, crowds, or locations
+- Avoid clichés completely
+
+OUTPUT FORMAT (STRICT JSON, single post):
+{
+  "post_number": ${normalizeText(existing.post_number) || 1},
+  "content_type": "${normalizeText(existing.content_type)}",
+  "asset_ids": [${normalizeText(existing.asset_ids).split(',').filter(Boolean).map((id) => `"${id.trim()}"`).join(', ')}],
+  "instagram_caption": "string",
+  "tiktok_caption": "string",
+  "hashtags": ["tag1", "tag2", "tag3"]
+}
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanations.
+`;
+
+  const parsed = await callOpenAIJson(prompt);
+
+  const assetIds = Array.isArray(parsed.asset_ids)
+    ? (parsed.asset_ids as unknown[]).map((v) => normalizeText(v)).filter(Boolean)
+    : normalizeText(existing.asset_ids).split(',').map((s) => s.trim()).filter(Boolean);
+
+  const hashtags = Array.isArray(parsed.hashtags)
+    ? (parsed.hashtags as unknown[]).map((v) => normalizeText(v)).filter(Boolean)
+    : [];
+
+  const updatedDraft = {
+    draft_id: draftId,
+    week_id: weekId,
+    post_number: normalizeText(existing.post_number),
+    content_type: normalizeText(parsed.content_type || existing.content_type),
+    caption: normalizeText(parsed.instagram_caption || ''),
+    tiktok_caption: normalizeText(parsed.tiktok_caption || ''),
+    hashtags: hashtags.join(', '),
+    asset_ids: assetIds.join(', '),
+    approval_status: 'pending'
+  };
+
+  await upsertSheetRow(
+    'content_drafts',
+    'draft_id',
+    WORKFLOW_COLUMNS.content_drafts as unknown as string[],
+    updatedDraft
+  );
+
+  const reviewRow = {
+    ...updatedDraft,
+    scheduled_date: normalizeText(existing.scheduled_date),
+    scheduled_time: normalizeText(existing.scheduled_time),
+    platform: normalizeText(existing.platform) || 'instagram,tiktok',
+    notes: normalizeText(existing.notes)
+  };
+
+  await upsertSheetRow(
+    'review_queue',
+    'draft_id',
+    WORKFLOW_COLUMNS.review_queue as unknown as string[],
+    reviewRow
+  );
+
+  return reviewRow;
 }

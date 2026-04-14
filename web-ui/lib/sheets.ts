@@ -211,6 +211,7 @@ function toReviewDraft(values: SheetRow): ReviewDraft {
     post_number: normalizeCellValue(values.post_number),
     content_type: normalizeCellValue(values.content_type),
     caption: normalizeCellValue(values.caption),
+    tiktok_caption: normalizeCellValue(values.tiktok_caption),
     hashtags: normalizeCellValue(values.hashtags),
     asset_ids: normalizeCellValue(values.asset_ids),
     approval_status: normalizeCellValue(values.approval_status) || 'pending',
@@ -361,6 +362,15 @@ export async function loadTrendInputs() {
   return readSheetTable(config.trendInputSheetName);
 }
 
+export async function loadWeeklyPlan(weekId: string): Promise<SheetRow | null> {
+  const parsed = await readSheetTable('weekly_plan');
+  const matches = parsed.rows
+    .map((row) => row.values)
+    .filter((row) => normalizeCellValue(row.week_id) === weekId);
+
+  return matches[matches.length - 1] ?? null;
+}
+
 export async function loadWorkflowRuns() {
   const config = getConfig();
   const parsedRuns = await readSheetTable(config.workflowRunsSheetName);
@@ -466,6 +476,7 @@ export async function updateReviewDraft(draftId: string, payload: ReviewPayload)
   const editableRecord: Record<string, string> = {
     ...targetRow.values,
     caption: payload.caption.trim(),
+    tiktok_caption: payload.tiktok_caption.trim(),
     hashtags: payload.hashtags.trim(),
     scheduled_date: payload.scheduled_date.trim(),
     scheduled_time: payload.scheduled_time.trim(),

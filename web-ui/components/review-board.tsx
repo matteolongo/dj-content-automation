@@ -5,6 +5,7 @@ import type { AssetPreview, ReviewContext, ReviewDraft, WeekSummary } from '@/li
 
 type DraftFormState = {
   caption: string;
+  tiktok_caption: string;
   hashtags: string;
   scheduled_date: string;
   scheduled_time: string;
@@ -15,6 +16,7 @@ type DraftFormState = {
 
 const DEFAULT_FORM: DraftFormState = {
   caption: '',
+  tiktok_caption: '',
   hashtags: '',
   scheduled_date: '',
   scheduled_time: '',
@@ -22,6 +24,29 @@ const DEFAULT_FORM: DraftFormState = {
   notes: '',
   approval_status: 'pending'
 };
+
+const PLATFORMS = ['instagram', 'tiktok'] as const;
+const INSTAGRAM_CHAR_LIMIT = 2200;
+
+function parsePlatforms(value: string): Set<string> {
+  return new Set(
+    value
+      .split(',')
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function serializePlatforms(platforms: Set<string>): string {
+  return Array.from(platforms).join(',');
+}
+
+function formatContentType(value: string) {
+  if (!value) return 'Draft';
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -102,6 +127,7 @@ function toFormState(draft?: ReviewDraft | null): DraftFormState {
 
   return {
     caption: draft.caption ?? '',
+    tiktok_caption: draft.tiktok_caption ?? '',
     hashtags: draft.hashtags ?? '',
     scheduled_date: draft.scheduled_date ?? '',
     scheduled_time: draft.scheduled_time ?? '',
@@ -111,14 +137,23 @@ function toFormState(draft?: ReviewDraft | null): DraftFormState {
   };
 }
 
+type WeeklyPlan = {
+  theme?: string;
+  trend_summary?: string;
+  asset_request_message?: string;
+  status?: string;
+} | null;
+
 export function ReviewBoard() {
   const [weeks, setWeeks] = useState<WeekSummary[]>([]);
   const [selectedWeekId, setSelectedWeekId] = useState('');
   const [drafts, setDrafts] = useState<ReviewContext['drafts']>([]);
   const [selectedDraftId, setSelectedDraftId] = useState('');
   const [form, setForm] = useState<DraftFormState>(DEFAULT_FORM);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -130,6 +165,7 @@ export function ReviewBoard() {
   async function loadContext(weekId?: string) {
     setLoading(true);
     setError('');
+    setWeeklyPlan(null);
 
     try {
       const url = weekId ? `/api/review-queue?week_id=${encodeURIComponent(weekId)}` : '/api/review-queue';
@@ -140,10 +176,20 @@ export function ReviewBoard() {
         throw new Error(data.error ?? 'Failed to load review queue');
       }
 
+      const resolvedWeekId = data.selectedWeekId ?? '';
       setWeeks(data.weeks ?? []);
-      setSelectedWeekId(data.selectedWeekId ?? '');
+      setSelectedWeekId(resolvedWeekId);
       setDrafts(data.drafts ?? []);
       setSelectedDraftId((data.drafts?.[0]?.draft_id as string) ?? '');
+
+      if (resolvedWeekId) {
+        const planResponse = await fetch(
+          `/api/weekly-plan?week_id=${encodeURIComponent(resolvedWeekId)}`,
+          { cache: 'no-store' }
+        );
+        const planData = (await planResponse.json()) as { plan: WeeklyPlan };
+        setWeeklyPlan(planData.plan ?? null);
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load review queue');
       setWeeks([]);
@@ -256,6 +302,47 @@ export function ReviewBoard() {
     }
   }
 
+  async function handleRegenerate() {
+    if (!selectedDraft) {
+      return;
+    }
+
+    setRegenerating(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await fetch(
+        `/api/review-queue/${encodeURIComponent(selectedDraft.draft_id)}/regenerate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: form.notes, week_id: selectedDraft.week_id })
+        }
+      );
+
+      const data = (await response.json()) as { draft?: ReviewDraft & { assets: AssetPreview[] }; error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Failed to regenerate draft');
+      }
+
+      if (data.draft) {
+        setDrafts((current) =>
+          current.map((d) => (d.draft_id === data.draft?.draft_id ? data.draft! : d))
+        );
+        setSelectedDraftId(data.draft.draft_id);
+        setForm(toFormState(data.draft));
+      }
+
+      setMessage('Draft regenerated from notes.');
+    } catch (regenError) {
+      setError(regenError instanceof Error ? regenError.message : 'Failed to regenerate draft');
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   const emptyState =
     !loading && weeks.length === 0 ? (
       <div className="empty-state">
@@ -315,6 +402,21 @@ export function ReviewBoard() {
 
       {emptyState}
 
+      {weeklyPlan?.theme ? (
+        <div className="strategy-panel">
+          <p className="eyebrow">This week&apos;s strategy</p>
+          <p className="strategy-theme">{weeklyPlan.theme}</p>
+          {weeklyPlan.trend_summary ? (
+            <p className="strategy-trend">{weeklyPlan.trend_summary}</p>
+          ) : null}
+          {weeklyPlan.asset_request_message ? (
+            <p className="strategy-asset-req">
+              <strong>Asset request:</strong> {weeklyPlan.asset_request_message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="board-grid">
         <aside className="draft-list-panel">
           <div className="panel-header">
@@ -344,10 +446,8 @@ export function ReviewBoard() {
                 >
                   <div className="draft-card-top">
                     <div>
-                      <p className="draft-meta">
-                        Post {draft.post_number || '—'} · {draft.content_type || 'Draft'}
-                      </p>
-                      <h3>{draft.draft_id}</h3>
+                      <p className="draft-meta">Post {draft.post_number || '—'}</p>
+                      <h3>{formatContentType(draft.content_type)}</h3>
                     </div>
                     <span className={statusClass(draft.approval_status)}>
                       {statusLabel(draft.approval_status)}
@@ -410,12 +510,28 @@ export function ReviewBoard() {
               </div>
 
               <div className="editor-form">
+                <div>
+                  <label>
+                    <span>Instagram caption</span>
+                    <textarea
+                      rows={6}
+                      value={form.caption}
+                      onChange={(event) => setForm((current) => ({ ...current, caption: event.target.value }))}
+                    />
+                  </label>
+                  <p className={`char-count ${form.caption.length > INSTAGRAM_CHAR_LIMIT ? 'char-count-over' : ''}`}>
+                    {form.caption.length} / {INSTAGRAM_CHAR_LIMIT}
+                  </p>
+                </div>
+
                 <label>
-                  <span>Caption</span>
+                  <span>TikTok caption</span>
                   <textarea
-                    rows={8}
-                    value={form.caption}
-                    onChange={(event) => setForm((current) => ({ ...current, caption: event.target.value }))}
+                    rows={4}
+                    value={form.tiktok_caption}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, tiktok_caption: event.target.value }))
+                    }
                   />
                 </label>
 
@@ -423,7 +539,7 @@ export function ReviewBoard() {
                   <label>
                     <span>Hashtags</span>
                     <textarea
-                      rows={6}
+                      rows={5}
                       value={form.hashtags}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, hashtags: event.target.value }))
@@ -432,9 +548,9 @@ export function ReviewBoard() {
                   </label>
 
                   <label>
-                    <span>Notes</span>
+                    <span>Notes <em className="field-optional">(used for regeneration)</em></span>
                     <textarea
-                      rows={6}
+                      rows={5}
                       value={form.notes}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, notes: event.target.value }))
@@ -468,17 +584,35 @@ export function ReviewBoard() {
                 </div>
 
                 <div className="split-row">
-                  <label>
-                    <span>Platform</span>
-                    <input
-                      type="text"
-                      value={form.platform}
-                      placeholder="instagram,tiktok"
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, platform: event.target.value }))
-                      }
-                    />
-                  </label>
+                  <div>
+                    <p className="editor-form-label">Platforms</p>
+                    <div className="platform-checkboxes">
+                      {PLATFORMS.map((platform) => {
+                        const checked = parsePlatforms(form.platform).has(platform);
+                        return (
+                          <label key={platform} className="platform-check">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) => {
+                                const platforms = parsePlatforms(form.platform);
+                                if (event.target.checked) {
+                                  platforms.add(platform);
+                                } else {
+                                  platforms.delete(platform);
+                                }
+                                setForm((current) => ({
+                                  ...current,
+                                  platform: serializePlatforms(platforms)
+                                }));
+                              }}
+                            />
+                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   <label>
                     <span>Approval status</span>
@@ -498,8 +632,17 @@ export function ReviewBoard() {
                 </div>
 
                 <div className="actions">
-                  <button type="button" className="primary-button" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Saving…' : 'Save to review_queue'}
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handleRegenerate}
+                    disabled={regenerating || saving}
+                    title="Re-run AI generation for this post using the notes field as revision instructions"
+                  >
+                    {regenerating ? 'Regenerating…' : 'Regenerate from notes'}
+                  </button>
+                  <button type="button" className="primary-button" onClick={handleSave} disabled={saving || regenerating}>
+                    {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </div>
