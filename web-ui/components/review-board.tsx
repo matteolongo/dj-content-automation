@@ -54,7 +54,45 @@ function statusLabel(status: string) {
 }
 
 function previewImage(asset: AssetPreview) {
-  return asset.resolved_url || asset.file_url;
+  if (asset.resolved_url) {
+    return asset.resolved_url;
+  }
+
+  if (asset.file_url && !asset.file_url.includes('drive.google.com')) {
+    return asset.file_url;
+  }
+
+  return '';
+}
+
+function isEmptyPreview(url: string) {
+  return !url.trim();
+}
+
+function AssetImage({
+  src,
+  alt,
+  className
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [src]);
+
+  if (isEmptyPreview(src) || broken) {
+    return (
+      <div className={`asset-fallback ${className ?? ''}`.trim()}>
+        <span>Preview unavailable</span>
+      </div>
+    );
+  }
+
+  return <img src={src} alt={alt} loading="lazy" onError={() => setBroken(true)} />;
 }
 
 function toFormState(draft?: ReviewDraft | null): DraftFormState {
@@ -304,7 +342,11 @@ export function ReviewBoard() {
 
                   {cover ? (
                     <div className="draft-cover">
-                      <img src={previewImage(cover)} alt={cover.file_name || draft.draft_id} />
+                      <AssetImage
+                        src={previewImage(cover)}
+                        alt={cover.file_name || draft.draft_id}
+                        className="draft-cover-image"
+                      />
                     </div>
                   ) : null}
                 </button>
@@ -333,7 +375,11 @@ export function ReviewBoard() {
                 {selectedDraftAssets.length > 0 ? (
                   selectedDraftAssets.map((asset) => (
                     <figure key={asset.asset_id} className="asset-card">
-                      <img src={previewImage(asset)} alt={asset.file_name || asset.asset_id} />
+                      <AssetImage
+                        src={previewImage(asset)}
+                        alt={asset.file_name || asset.asset_id}
+                        className="asset-card-image"
+                      />
                       <figcaption>
                         <strong>{asset.file_name || asset.asset_id}</strong>
                         <span>{asset.asset_type || 'asset'}</span>

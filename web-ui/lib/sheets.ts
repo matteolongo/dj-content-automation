@@ -9,8 +9,8 @@ import {
   WeekSummary
 } from '@/lib/types';
 import { getConfig } from '@/lib/env';
+import { createGoogleAuthClient } from '@/lib/google';
 
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const REVIEW_STATUS_VALUES = ['pending', 'approved', 'needs_changes', 'rejected'];
 
 type ParsedSheet = {
@@ -22,14 +22,7 @@ type ParsedSheet = {
 };
 
 function createSheetsClient() {
-  const config = getConfig();
-  const auth = new google.auth.JWT(
-    config.serviceAccountEmail,
-    undefined,
-    config.privateKey,
-    SCOPES
-  );
-
+  const auth = createGoogleAuthClient();
   return google.sheets({ version: 'v4', auth });
 }
 
@@ -136,12 +129,12 @@ function toAssetRecord(values: SheetRow): AssetRecord {
 }
 
 function resolveAssetUrl(asset: AssetRecord) {
-  if (asset.file_url) {
-    return asset.file_url;
+  if (asset.asset_id) {
+    return `/api/assets/${encodeURIComponent(asset.asset_id)}`;
   }
 
-  if (asset.asset_id) {
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(asset.asset_id)}`;
+  if (asset.file_url && !asset.file_url.includes('drive.google.com')) {
+    return asset.file_url;
   }
 
   return '';
@@ -245,7 +238,7 @@ function buildAssetPreviews(assetIds: string, assetMap: Map<string, AssetRecord>
       file_size: '',
       mime_type: '',
       source: '',
-      resolved_url: `https://drive.google.com/uc?export=view&id=${encodeURIComponent(assetId)}`
+      resolved_url: `/api/assets/${encodeURIComponent(assetId)}`
     };
   });
 }
