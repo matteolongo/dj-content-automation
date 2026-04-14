@@ -12,6 +12,7 @@ function isReviewPayload(value: unknown): value is ReviewPayload {
   const candidate = value as Record<string, unknown>;
   const requiredKeys: Array<keyof ReviewPayload> = [
     'caption',
+    'tiktok_caption',
     'hashtags',
     'scheduled_date',
     'scheduled_time',

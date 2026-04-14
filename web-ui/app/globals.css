@@ -116,22 +116,34 @@ img {
   margin-bottom: 16px;
 }
 
-.launcher-hero {
+.launcher-header {
   display: flex;
   justify-content: space-between;
   gap: 24px;
-  align-items: flex-end;
-  padding: 22px 0 8px;
+  align-items: center;
+  padding: 24px 0 8px;
+}
+
+.launcher-title h2 {
+  margin: 8px 0 0;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1;
 }
 
 .launcher-note {
-  min-width: 280px;
+  min-width: 240px;
 }
 
 .launcher-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
   gap: 16px;
+  align-items: start;
+}
+
+.launcher-runs-panel .run-list {
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
 }
 
 .launcher-panel {
@@ -144,6 +156,49 @@ img {
 
 .launcher-form {
   padding-top: 4px;
+}
+
+.trend-input-block {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border-left: 3px solid var(--teal);
+  background: rgba(23, 107, 99, 0.04);
+}
+
+.trend-input-block textarea {
+  background: var(--card);
+}
+
+.trend-block-label {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.trend-required {
+  font-style: normal;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.field-optional {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .workflow-button-grid {
@@ -528,7 +583,9 @@ textarea:focus {
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding-top: 4px;
 }
 
@@ -581,6 +638,96 @@ textarea:focus {
   color: var(--red);
 }
 
+.strategy-panel {
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(23, 107, 99, 0.22);
+  background: rgba(23, 107, 99, 0.04);
+  display: grid;
+  gap: 8px;
+}
+
+.strategy-theme {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.strategy-trend {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.strategy-asset-req {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.char-count {
+  margin: 4px 0 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.char-count-over {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.editor-form-label {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.platform-checkboxes {
+  display: flex;
+  gap: 14px;
+}
+
+.platform-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.platform-check input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal);
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.secondary-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  border-color: rgba(23, 107, 99, 0.34);
+}
+
+.secondary-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .empty-state,
 .panel-placeholder {
   padding: 22px;
@@ -607,7 +754,7 @@ code {
 
 @media (max-width: 1180px) {
   .hero,
-  .launcher-hero,
+  .launcher-header,
   .board-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -617,7 +764,18 @@ code {
     width: 100%;
   }
 
-  .launcher-grid,
+  .launcher-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .launcher-runs-panel {
+    grid-column: 1 / -1;
+  }
+
+  .launcher-runs-panel .run-list {
+    max-height: none;
+  }
+
   .workflow-button-grid {
     grid-template-columns: 1fr;
   }
@@ -637,8 +795,12 @@ code {
     padding-top: 18px;
   }
 
-  .hero h1 {
-    font-size: clamp(2rem, 11vw, 3rem);
+  .launcher-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .launcher-runs-panel {
+    grid-column: auto;
   }
 
   .summary-row,
@@ -646,7 +808,8 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .hero-note {
+  .hero-note,
+  .launcher-note {
     min-width: 0;
   }
 

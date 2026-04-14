@@ -5,6 +5,7 @@ import type { WorkflowKey, WorkflowRunRequest } from '@/lib/types';
 export const runtime = 'nodejs';
 
 const VALID_WORKFLOW_KEYS = new Set<WorkflowKey>([
+  'trend_ingestion',
   'weekly_strategy',
   'asset_intake',
   'content_generation',

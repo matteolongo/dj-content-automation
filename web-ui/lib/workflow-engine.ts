@@ -37,6 +37,7 @@ const WORKFLOW_COLUMNS = {
     'post_number',
     'content_type',
     'caption',
+    'tiktok_caption',
     'hashtags',
     'asset_ids',
     'approval_status'
@@ -47,6 +48,7 @@ const WORKFLOW_COLUMNS = {
     'post_number',
     'content_type',
     'caption',
+    'tiktok_caption',
     'hashtags',
     'asset_ids',
     'approval_status',
@@ -375,18 +377,115 @@ IMPORTANT:
   return { summary, weeklyPlan };
 }
 
-async function runAssetIntake(progress: WorkflowProgress) {
+async function runTrendIngestion(progress: WorkflowProgress, query: string) {
   const config = getConfig();
 
-  if (!config.driveAssetFolderId) {
-    throw new Error('Missing required environment variable: GOOGLE_DRIVE_ASSET_FOLDER_ID');
+  if (!config.tavilyApiKey) {
+    throw new Error('Missing required environment variable: TAVILY_API_KEY');
+  }
+
+  if (!config.openaiApiKey) {
+    throw new Error('Missing required environment variable: OPENAI_API_KEY');
+  }
+
+  progress.summary = 'Searching for trends';
+
+  const tavilyResponse = await fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.tavilyApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      query,
+      topic: 'general',
+      search_depth: 'basic',
+      max_results: 5
+    })
+  });
+
+  if (!tavilyResponse.ok) {
+    const text = await tavilyResponse.text();
+    throw new Error(`Tavily search failed (${tavilyResponse.status}): ${text}`);
+  }
+
+  const tavilyData = (await tavilyResponse.json()) as {
+    results?: Array<{ title?: string; url?: string; content?: string }>;
+  };
+
+  const results = Array.isArray(tavilyData.results) ? tavilyData.results : [];
+
+  if (results.length === 0) {
+    throw new Error('No results returned from Tavily search');
+  }
+
+  const simplified = results.map((r, index) => ({
+    rank: index + 1,
+    title: normalizeText(r.title),
+    url: normalizeText(r.url),
+    content: normalizeText(r.content)
+  }));
+
+  progress.summary = 'Summarizing trends with AI';
+
+  const prompt = `
+You are a social media trend analyst specialized in underground electronic music and DJ branding.
+
+Your task is to analyze web search results and extract only the trends that are relevant for a niche underground electronic DJ brand.
+
+BRAND CONTEXT:
+- Groovy, emotional electronic music
+- Underground, elegant, minimal, mysterious
+- Avoid generic influencer trends
+- Avoid meme-heavy trends
+- Focus on formats, hooks, and social patterns that can be adapted authentically
+
+SEARCH RESULTS:
+${JSON.stringify(simplified, null, 2)}
+
+OUTPUT FORMAT (STRICT JSON):
+{
+  "trend_text": "A concise summary of the most relevant social content trends for this week, in plain English, 80 to 140 words.",
+  "raw_summary": "A slightly longer explanation of why these trends matter for this DJ brand."
+}
+
+IMPORTANT:
+- Return ONLY valid JSON
+- No markdown
+- No explanations
+`;
+
+  const parsed = await callOpenAIJson(prompt);
+  const trendText = normalizeText(parsed.trend_text);
+  const rawSummary = normalizeText(parsed.raw_summary);
+
+  await appendTrendInput({
+    week_id: progress.weekId,
+    trend_text: trendText,
+    source_query: query,
+    raw_summary: rawSummary
+  });
+
+  return {
+    summary: `Trends ingested for ${progress.weekId} | ${truncate(trendText, 180)}`
+  };
+}
+
+async function runAssetIntake(progress: WorkflowProgress, folderId?: string) {
+  const config = getConfig();
+  const resolvedFolderId = folderId?.trim() || config.driveAssetFolderId;
+
+  if (!resolvedFolderId) {
+    throw new Error(
+      'Drive folder ID is required. Provide it in the UI or set GOOGLE_DRIVE_ASSET_FOLDER_ID in .env.'
+    );
   }
 
   const auth = createGoogleAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
   const response = await drive.files.list({
-    q: `'${config.driveAssetFolderId}' in parents and trashed = false`,
+    q: `'${resolvedFolderId}' in parents and trashed = false`,
     fields: 'files(id, name, mimeType, size, webViewLink, webContentLink, modifiedTime)',
     pageSize: 1000
   });
@@ -396,7 +495,7 @@ async function runAssetIntake(progress: WorkflowProgress) {
   );
 
   if (files.length === 0) {
-    throw new Error(`No assets found in Drive folder ${config.driveAssetFolderId}`);
+    throw new Error(`No assets found in Drive folder ${resolvedFolderId}`);
   }
 
   const assetRows = files.map((file) => {
@@ -562,6 +661,7 @@ IMPORTANT:
       post_number: String(postNumber),
       content_type: normalizeText(post.content_type),
       caption: normalizeText(post.instagram_caption || post.instagram_short_caption || ''),
+      tiktok_caption: normalizeText(post.tiktok_caption || ''),
       hashtags: hashtags.join(', '),
       asset_ids: assetIds.join(', '),
       approval_status: 'pending'
@@ -595,6 +695,7 @@ async function runPopulateReviewQueue(progress: WorkflowProgress) {
     post_number: normalizeText(draft.post_number),
     content_type: normalizeText(draft.content_type),
     caption: normalizeText(draft.caption),
+    tiktok_caption: normalizeText(draft.tiktok_caption),
     hashtags: normalizeText(draft.hashtags),
     asset_ids: normalizeText(draft.asset_ids),
     approval_status: normalizeText(draft.approval_status) || 'pending',
@@ -667,10 +768,17 @@ async function runReadyToSchedule(progress: WorkflowProgress) {
 
 async function executeWorkflow(progress: WorkflowProgress, request: WorkflowRunRequest) {
   switch (progress.workflowKey) {
+    case 'trend_ingestion': {
+      const query = normalizeText(request.trend_query);
+      if (!query) {
+        throw new Error('trend_query is required for trend ingestion');
+      }
+      return runTrendIngestion(progress, query);
+    }
     case 'weekly_strategy':
       return runWeeklyStrategy(progress, request.trend_text);
     case 'asset_intake':
-      return runAssetIntake(progress);
+      return runAssetIntake(progress, request.drive_folder_id);
     case 'content_generation':
       return runContentGeneration(progress);
     case 'populate_review_queue':
@@ -679,7 +787,7 @@ async function executeWorkflow(progress: WorkflowProgress, request: WorkflowRunR
       return runReadyToSchedule(progress);
     case 'full_pipeline': {
       const weeklyStrategy = await runWeeklyStrategy(progress, request.trend_text);
-      const assetIntake = await runAssetIntake(progress);
+      const assetIntake = await runAssetIntake(progress, request.drive_folder_id);
       const contentGeneration = await runContentGeneration(progress);
       const reviewQueue = await runPopulateReviewQueue(progress);
 
@@ -735,4 +843,121 @@ export async function listWorkflowRunHistory() {
   const runs = await loadWorkflowRuns();
 
   return runs.slice().reverse();
+}
+
+export async function regenerateDraft(draftId: string, weekId: string, notes: string) {
+  const [brand, weeklyPlan, assets] = await Promise.all([
+    loadBrandProfile(),
+    loadLatestRowByWeekId('weekly_plan', weekId),
+    loadRowsByWeekId('assets', weekId)
+  ]);
+
+  if (!weeklyPlan) {
+    throw new Error(`No weekly_plan found for week_id=${weekId}`);
+  }
+
+  const reviewParsed = await readSheetTable('review_queue');
+  const existingRow = reviewParsed.rows.find(
+    (row) => normalizeText(row.values.draft_id) === draftId
+  );
+
+  if (!existingRow) {
+    throw new Error(`Draft ${draftId} not found in review_queue`);
+  }
+
+  const existing = existingRow.values;
+
+  const prompt = `
+You are revising a single social post for an underground electronic DJ brand.
+
+ARTIST PROFILE:
+Artist name: ${normalizeText(brand.artist_name)}
+Tone: ${normalizeText(brand.tone)}
+Colors: ${normalizeText(brand.colors)}
+Audience: ${normalizeText(brand.audience)}
+Goals: ${normalizeText(brand.goals)}
+Anti-patterns: ${normalizeText(brand.anti_patterns)}
+
+WEEKLY PLAN:
+${JSON.stringify(weeklyPlan, null, 2)}
+
+AVAILABLE ASSETS:
+${JSON.stringify(assets, null, 2)}
+
+ORIGINAL DRAFT (post ${normalizeText(existing.post_number)}):
+Content type: ${normalizeText(existing.content_type)}
+Instagram caption: ${normalizeText(existing.caption)}
+TikTok caption: ${normalizeText(existing.tiktok_caption)}
+Hashtags: ${normalizeText(existing.hashtags)}
+
+REVISION NOTES FROM THE DJ:
+${notes.trim() || 'Improve the caption while keeping the same concept and tone.'}
+
+RULES:
+- English only
+- Keep post_number: ${normalizeText(existing.post_number)}
+- Keep content_type: ${normalizeText(existing.content_type)}
+- Incorporate the revision notes — they are the primary instruction
+- Stay authentic to the artist's underground electronic identity
+- Never invent facts, events, crowds, or locations
+- Avoid clichés completely
+
+OUTPUT FORMAT (STRICT JSON, single post):
+{
+  "post_number": ${normalizeText(existing.post_number) || 1},
+  "content_type": "${normalizeText(existing.content_type)}",
+  "asset_ids": [${normalizeText(existing.asset_ids).split(',').filter(Boolean).map((id) => `"${id.trim()}"`).join(', ')}],
+  "instagram_caption": "string",
+  "tiktok_caption": "string",
+  "hashtags": ["tag1", "tag2", "tag3"]
+}
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanations.
+`;
+
+  const parsed = await callOpenAIJson(prompt);
+
+  const assetIds = Array.isArray(parsed.asset_ids)
+    ? (parsed.asset_ids as unknown[]).map((v) => normalizeText(v)).filter(Boolean)
+    : normalizeText(existing.asset_ids).split(',').map((s) => s.trim()).filter(Boolean);
+
+  const hashtags = Array.isArray(parsed.hashtags)
+    ? (parsed.hashtags as unknown[]).map((v) => normalizeText(v)).filter(Boolean)
+    : [];
+
+  const updatedDraft = {
+    draft_id: draftId,
+    week_id: weekId,
+    post_number: normalizeText(existing.post_number),
+    content_type: normalizeText(parsed.content_type || existing.content_type),
+    caption: normalizeText(parsed.instagram_caption || ''),
+    tiktok_caption: normalizeText(parsed.tiktok_caption || ''),
+    hashtags: hashtags.join(', '),
+    asset_ids: assetIds.join(', '),
+    approval_status: 'pending'
+  };
+
+  await upsertSheetRow(
+    'content_drafts',
+    'draft_id',
+    WORKFLOW_COLUMNS.content_drafts as unknown as string[],
+    updatedDraft
+  );
+
+  const reviewRow = {
+    ...updatedDraft,
+    scheduled_date: normalizeText(existing.scheduled_date),
+    scheduled_time: normalizeText(existing.scheduled_time),
+    platform: normalizeText(existing.platform) || 'instagram,tiktok',
+    notes: normalizeText(existing.notes)
+  };
+
+  await upsertSheetRow(
+    'review_queue',
+    'draft_id',
+    WORKFLOW_COLUMNS.review_queue as unknown as string[],
+    reviewRow
+  );
+
+  return reviewRow;
 }

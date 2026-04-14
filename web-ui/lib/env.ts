@@ -7,6 +7,7 @@ type Config = {
   serviceAccountEmail: string;
   privateKey: string;
   openaiApiKey: string;
+  tavilyApiKey: string;
   driveAssetFolderId: string;
 };
 
@@ -29,6 +30,7 @@ export function getConfig(): Config {
     serviceAccountEmail: required('GOOGLE_SERVICE_ACCOUNT_EMAIL'),
     privateKey: required('GOOGLE_PRIVATE_KEY').replace(/\\n/g, '\n'),
     openaiApiKey: process.env.OPENAI_API_KEY ?? '',
-    driveAssetFolderId: process.env.GOOGLE_DRIVE_ASSET_FOLDER_ID ?? '1-HqjaBbOnG2Qgn2iHzehRn1cuPC6io0G'
+    tavilyApiKey: process.env.TAVILY_API_KEY ?? '',
+    driveAssetFolderId: process.env.GOOGLE_DRIVE_ASSET_FOLDER_ID ?? ''
   };
 }

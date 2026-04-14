@@ -13,6 +13,12 @@ Suggested names:
 
 The UI launcher in `web-ui` uses the same workflow sequence and records run state in `workflow_runs`.
 
+To import all exported workflows into a running n8n instance at once, use:
+
+```bash
+bash scripts/import_workflows.sh
+```
+
 Suggested process:
 
 1. finish testing a workflow in n8n

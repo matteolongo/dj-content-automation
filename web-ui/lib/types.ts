@@ -6,6 +6,7 @@ export interface ReviewDraft {
   post_number: string;
   content_type: string;
   caption: string;
+  tiktok_caption: string;
   hashtags: string;
   asset_ids: string;
   approval_status: string;
@@ -42,6 +43,7 @@ export interface WeekSummary {
 
 export interface ReviewPayload {
   caption: string;
+  tiktok_caption: string;
   hashtags: string;
   scheduled_date: string;
   scheduled_time: string;
@@ -57,6 +59,7 @@ export interface ReviewContext {
 }
 
 export type WorkflowKey =
+  | 'trend_ingestion'
   | 'weekly_strategy'
   | 'asset_intake'
   | 'content_generation'
@@ -81,4 +84,6 @@ export interface WorkflowRunRequest {
   workflow_key: WorkflowKey;
   week_id?: string;
   trend_text?: string;
+  trend_query?: string;
+  drive_folder_id?: string;
 }
