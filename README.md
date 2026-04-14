@@ -13,6 +13,7 @@ This project implements a practical MVP for a DJ content pipeline:
 5. send drafts for approval by email
 6. copy approved drafts into a review queue
 7. send a ready-to-schedule email for approved posts
+8. review and edit drafts in a dedicated UI instead of Sheets
 
 The current implementation is intentionally simple:
 
@@ -31,6 +32,10 @@ The current implementation is intentionally simple:
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── web-ui/
+│   ├── app/
+│   ├── components/
+│   └── lib/
 ├── docs/
 │   └── workflows/
 │       ├── 01_weekly_strategy.md
@@ -78,6 +83,8 @@ cp .env.example .env
 
 Then update the values you need.
 
+The review UI needs the Google Sheets spreadsheet ID, the service account email, and the private key. It also uses basic auth with `REVIEW_UI_USERNAME` and `REVIEW_UI_PASSWORD` from `.env`.
+
 ## Run locally
 
 ```bash
@@ -88,6 +95,12 @@ Open n8n at:
 
 ```text
 http://localhost:5678
+```
+
+Open the review UI at:
+
+```text
+http://localhost:3000
 ```
 
 Stop it with:
@@ -102,6 +115,8 @@ This setup stores n8n data in a local Docker volume named `n8n_data`.
 
 That means your workflows and credentials survive container restarts.
 
+The review UI reads and writes the Google Sheet directly using a service account.
+
 ## Recommended local setup flow
 
 1. start n8n with Docker Compose
@@ -110,9 +125,11 @@ That means your workflows and credentials survive container restarts.
 4. configure email credentials
 5. add your OpenAI API key to the HTTP Request node headers
 6. create the Google Sheets tabs
-7. build and test each workflow in the order documented in `docs/workflows/`
-8. export each finished workflow JSON into `workflows/exports/`
-9. commit to git
+7. share the spreadsheet with the Google service account email
+8. build and test each workflow in the order documented in `docs/workflows/`
+9. export each finished workflow JSON into `workflows/exports/`
+10. review and edit drafts in the UI at `http://localhost:3000`
+11. commit to git
 
 ## Suggested git workflow
 
@@ -140,10 +157,11 @@ The project expects these tabs in your operational spreadsheet:
 - `content_drafts`
 - `review_queue`
 
+The `review_queue` table is the editable operational table for the new UI.
+
 ## Next recommended improvements
 
 - duplicate protection before appending into `review_queue`
 - auto-update approval status from replies
 - scheduler integration with Buffer or Later
 - replace manual trend input with automatic trend ingestion
-

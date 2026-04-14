@@ -4,3 +4,5 @@ node_modules/
 *.log
 n8n_data/
 workflows/exports/*.bak
+web-ui/node_modules/
+web-ui/.next/
