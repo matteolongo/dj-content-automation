@@ -110,6 +110,130 @@ img {
   font-weight: 600;
 }
 
+.launcher {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.launcher-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-end;
+  padding: 22px 0 8px;
+}
+
+.launcher-note {
+  min-width: 280px;
+}
+
+.launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.launcher-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.launcher-form {
+  padding-top: 4px;
+}
+
+.workflow-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+.workflow-button {
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.workflow-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(23, 107, 99, 0.34);
+}
+
+.workflow-button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.workflow-button strong {
+  font-size: 0.96rem;
+}
+
+.workflow-button span {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.workflow-button-primary {
+  background:
+    linear-gradient(135deg, rgba(23, 107, 99, 0.11), rgba(200, 143, 33, 0.08)),
+    var(--card);
+  border-color: rgba(23, 107, 99, 0.24);
+}
+
+.run-list {
+  padding: 0 18px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.run-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.run-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.run-card h4 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.run-summary {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.run-error {
+  margin: 0;
+  color: var(--red);
+  font-size: 0.92rem;
+}
+
 .board {
   display: grid;
   gap: 16px;
@@ -483,6 +607,7 @@ code {
 
 @media (max-width: 1180px) {
   .hero,
+  .launcher-hero,
   .board-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -490,6 +615,11 @@ code {
 
   .summary-row {
     width: 100%;
+  }
+
+  .launcher-grid,
+  .workflow-button-grid {
+    grid-template-columns: 1fr;
   }
 
   .board-grid {

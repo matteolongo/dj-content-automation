@@ -5,6 +5,7 @@ Read approved rows from `review_queue` and send a final ready-to-schedule email.
 
 ## Trigger
 - manual trigger for v1
+- UI launcher can also start the final handoff preview
 
 ## Inputs
 - `review_queue`
@@ -12,6 +13,7 @@ Read approved rows from `review_queue` and send a final ready-to-schedule email.
 
 ## Output
 - one HTML email containing approved posts only
+- one run record in `workflow_runs`
 
 ## Main nodes
 1. Manual Trigger

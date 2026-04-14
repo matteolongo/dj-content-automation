@@ -5,6 +5,7 @@ Read the weekly plan and asset list, generate 3 social drafts with OpenAI, and s
 
 ## Trigger
 - manual trigger for v1
+- UI launcher can also start the run once `weekly_plan` and `assets` exist
 
 ## Inputs
 - `weekly_plan`
@@ -13,6 +14,7 @@ Read the weekly plan and asset list, generate 3 social drafts with OpenAI, and s
 
 ## Output
 - three rows in `content_drafts`
+- one run record in `workflow_runs`
 
 ## Main nodes
 1. Manual Trigger

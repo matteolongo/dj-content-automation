@@ -160,6 +160,24 @@ export function ReviewBoard() {
   }, []);
 
   useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ workflowKey: string; weekId: string }>).detail;
+
+      if (!detail?.weekId) {
+        return;
+      }
+
+      void loadContext(detail.weekId);
+    };
+
+    window.addEventListener('workflow-run-complete', handler as EventListener);
+
+    return () => {
+      window.removeEventListener('workflow-run-complete', handler as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!selectedDraft) {
       setForm(DEFAULT_FORM);
       return;

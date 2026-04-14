@@ -4,7 +4,7 @@ This repo now includes a local-first review app for the human approval step.
 
 ## Purpose
 
-The UI replaces Google Sheets as the day-to-day review surface while keeping Sheets as the source of truth.
+The UI replaces Google Sheets as the day-to-day review surface while keeping Sheets as the source of truth, and now also launches the workflow chain from the browser.
 
 ## Data flow
 
@@ -13,6 +13,8 @@ The UI replaces Google Sheets as the day-to-day review surface while keeping She
 3. the review UI reads `review_queue`, renders previews through the internal asset proxy, and lets the DJ edit the row
 4. saved edits go back to `review_queue`
 5. `ready_to_schedule_v1` reads only approved rows from `review_queue`
+6. the workflow launcher writes run metadata into `workflow_runs`
+7. completed generation runs trigger an automatic refresh of the latest week in the review board
 
 ## Editable fields
 
@@ -26,6 +28,19 @@ The UI edits:
 - `notes`
 - `approval_status`
 
+## Workflow launcher
+
+The top of the UI includes buttons for:
+
+- `weekly_strategy`
+- `asset_intake`
+- `content_generation`
+- `populate_review_queue`
+- `ready_to_schedule`
+- `full_pipeline`
+
+The launcher also accepts the week id and the current trend note, then records each run in `workflow_runs`.
+
 ## Setup
 
 1. Share the Google Sheet with the service account email.
@@ -37,6 +52,7 @@ The UI edits:
 
 - `content_drafts` stays immutable.
 - `review_queue` is the operational review table.
+- `workflow_runs` tracks live execution state and summaries.
 - The UI uses `draft_id` as the stable row key.
 - Image previews are served from the app at `/api/assets/<asset_id>`.
 - Raw `drive.google.com` preview URLs are no longer required in the browser.

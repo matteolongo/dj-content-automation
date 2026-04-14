@@ -1,4 +1,5 @@
 import { ReviewBoard } from '@/components/review-board';
+import { WorkflowLauncher } from '@/components/workflow-launcher';
 
 export default function HomePage() {
   return (
@@ -6,18 +7,20 @@ export default function HomePage() {
       <section className="hero">
         <div>
           <p className="eyebrow">DJ Content Automation</p>
-          <h1>Review drafts without living in Google Sheets.</h1>
+          <h1>Run the content pipeline and review drafts in one place.</h1>
           <p className="lede">
-            Check the generated captions, inspect the asset previews, make edits, and
-            push approval state back into the operational queue.
+            Launch the weekly workflow chain from the UI, watch the latest runs update in real
+            time, and then refine the generated captions and assets without living in Google
+            Sheets.
           </p>
         </div>
         <div className="hero-note">
+          <strong>Workflow state:</strong> <span>workflow_runs</span>
           <strong>Source of truth:</strong> <span>review_queue</span>
-          <strong>Immutable output:</strong> <span>content_drafts</span>
         </div>
       </section>
 
+      <WorkflowLauncher />
       <ReviewBoard />
     </main>
   );

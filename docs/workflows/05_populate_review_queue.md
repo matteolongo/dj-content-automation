@@ -5,6 +5,7 @@ Copy generated drafts into the operational `review_queue` tab.
 
 ## Trigger
 - manual trigger for v1
+- UI launcher can also start the run after draft generation
 
 ## Inputs
 - `content_drafts`
@@ -12,6 +13,7 @@ Copy generated drafts into the operational `review_queue` tab.
 
 ## Output
 - one row per draft in `review_queue`
+- one run record in `workflow_runs`
 
 ## Main nodes
 1. Manual Trigger

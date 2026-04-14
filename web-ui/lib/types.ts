@@ -55,3 +55,30 @@ export interface ReviewContext {
   selectedWeekId: string;
   drafts: Array<ReviewDraft & { assets: AssetPreview[] }>;
 }
+
+export type WorkflowKey =
+  | 'weekly_strategy'
+  | 'asset_intake'
+  | 'content_generation'
+  | 'populate_review_queue'
+  | 'ready_to_schedule'
+  | 'full_pipeline';
+
+export type WorkflowRunStatus = 'queued' | 'running' | 'completed' | 'failed';
+
+export interface WorkflowRunRecord {
+  run_id: string;
+  workflow_key: WorkflowKey;
+  week_id: string;
+  status: WorkflowRunStatus;
+  started_at: string;
+  finished_at: string;
+  error_message: string;
+  output_summary: string;
+}
+
+export interface WorkflowRunRequest {
+  workflow_key: WorkflowKey;
+  week_id?: string;
+  trend_text?: string;
+}

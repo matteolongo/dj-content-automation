@@ -11,6 +11,8 @@ Suggested names:
 - `05_populate_review_queue.json`
 - `06_ready_to_schedule.json`
 
+The UI launcher in `web-ui` uses the same workflow sequence and records run state in `workflow_runs`.
+
 Suggested process:
 
 1. finish testing a workflow in n8n

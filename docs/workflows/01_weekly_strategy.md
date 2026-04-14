@@ -6,6 +6,7 @@ Generate the weekly content theme, summarize the trend fit, save the weekly plan
 ## Trigger
 - schedule trigger
 - run weekly on Sunday morning
+- UI launcher can also start the run and provide the trend text
 
 ## Inputs
 - `brand_profile` from Google Sheets
@@ -14,6 +15,7 @@ Generate the weekly content theme, summarize the trend fit, save the weekly plan
 ## Output
 - one new row in `weekly_plan`
 - one email with the weekly asset request
+- one run record in `workflow_runs`
 
 ## Main nodes
 1. Schedule Trigger

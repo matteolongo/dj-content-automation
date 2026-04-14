@@ -8,11 +8,15 @@ export async function GET() {
     'GOOGLE_SERVICE_ACCOUNT_EMAIL',
     'GOOGLE_PRIVATE_KEY'
   ];
+  const executionRequired = ['OPENAI_API_KEY', 'GOOGLE_DRIVE_ASSET_FOLDER_ID'];
 
   const missing = required.filter((name) => !process.env[name]);
+  const executionMissing = executionRequired.filter((name) => !process.env[name]);
 
   return NextResponse.json({
     ok: missing.length === 0,
-    missing
+    missing,
+    executionReady: executionMissing.length === 0,
+    executionMissing
   });
 }

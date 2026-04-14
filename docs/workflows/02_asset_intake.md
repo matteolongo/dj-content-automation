@@ -5,6 +5,7 @@ Read files from the weekly Google Drive folder, classify them as photo or video,
 
 ## Trigger
 - manual trigger for v1
+- UI launcher can also start the run for a specific `week_id`
 
 ## Inputs
 - `week_id`
@@ -12,6 +13,7 @@ Read files from the weekly Google Drive folder, classify them as photo or video,
 
 ## Output
 - one row per file in `assets`
+- one run record in `workflow_runs`
 
 ## Main nodes
 1. Manual Trigger

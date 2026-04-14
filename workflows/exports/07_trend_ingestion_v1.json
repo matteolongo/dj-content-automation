@@ -19,7 +19,7 @@
             {
               "id": "cf54fdd0-82cd-4986-acef-da12c19d4569",
               "name": "week_id",
-              "value": "test-week-02",
+              "value": "={{$json.week_id || 'test-week-02'}}",
               "type": "string"
             },
             {

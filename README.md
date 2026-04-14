@@ -13,7 +13,8 @@ This project implements a practical MVP for a DJ content pipeline:
 5. send drafts for approval by email
 6. copy approved drafts into a review queue
 7. send a ready-to-schedule email for approved posts
-8. review and edit drafts in a dedicated UI instead of Sheets
+8. run the workflows from the UI and watch new drafts appear live
+9. review and edit drafts in a dedicated UI instead of Sheets
 
 The current implementation is intentionally simple:
 
@@ -85,6 +86,8 @@ Then update the values you need.
 
 The review UI needs the Google Sheets spreadsheet ID, the service account email, and the private key. It also uses basic auth with `REVIEW_UI_USERNAME` and `REVIEW_UI_PASSWORD` from `.env`.
 
+The workflow launcher also needs `OPENAI_API_KEY` for generation and `GOOGLE_DRIVE_ASSET_FOLDER_ID` for asset intake.
+
 ## Run locally
 
 ```bash
@@ -115,7 +118,7 @@ This setup stores n8n data in a local Docker volume named `n8n_data`.
 
 That means your workflows and credentials survive container restarts.
 
-The review UI reads and writes the Google Sheet directly using a service account.
+The review UI reads and writes the Google Sheet directly using a service account, and the workflow launcher uses the same Sheets-backed state plus `OPENAI_API_KEY` and `GOOGLE_DRIVE_ASSET_FOLDER_ID` for execution.
 
 ## Recommended local setup flow
 
@@ -123,13 +126,15 @@ The review UI reads and writes the Google Sheet directly using a service account
 2. connect Google Sheets credentials
 3. connect Google Drive credentials
 4. configure email credentials
-5. add your OpenAI API key to the HTTP Request node headers
+5. add your OpenAI API key to the UI runner or the n8n OpenAI nodes
 6. create the Google Sheets tabs
 7. share the spreadsheet with the Google service account email
-8. build and test each workflow in the order documented in `docs/workflows/`
-9. export each finished workflow JSON into `workflows/exports/`
-10. review and edit drafts in the UI at `http://localhost:3000`
-11. commit to git
+8. set `OPENAI_API_KEY` and `GOOGLE_DRIVE_ASSET_FOLDER_ID` in `.env`
+9. build and test each workflow in the order documented in `docs/workflows/`
+10. export each finished workflow JSON into `workflows/exports/`
+11. use the UI workflow launcher at `http://localhost:3000`
+12. review and edit drafts in the UI at `http://localhost:3000`
+13. commit to git
 
 ## Suggested git workflow
 
@@ -156,8 +161,10 @@ The project expects these tabs in your operational spreadsheet:
 - `assets`
 - `content_drafts`
 - `review_queue`
+- `workflow_runs`
 
 The `review_queue` table is the editable operational table for the new UI.
+The `workflow_runs` table records UI-launched run status and summaries.
 
 ## Next recommended improvements
 

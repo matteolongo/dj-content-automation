@@ -81,7 +81,7 @@
             {
               "id": "c52f7ec5-9a11-47c6-b086-12dfbe514399",
               "name": "weedk_id",
-              "value": "test-week-1",
+              "value": "={{$json.week_id || 'test-week-1'}}",
               "type": "string"
             }
           ]
@@ -118,7 +118,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "asset_id": "={{$json.asset_id}}",
-            "week_id": "={{$('Set week_id').first().json.weed_id}}",
+            "week_id": "={{$('Set week_id').first().json.week_id}}",
             "file_url": "={{$json.file_url}}",
             "asset_type": "={{$json.asset_type}}",
             "source": "={{$json.source}}",

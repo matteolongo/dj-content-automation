@@ -6,7 +6,8 @@ import {
   ReviewDraft,
   ReviewPayload,
   SheetRow,
-  WeekSummary
+  WeekSummary,
+  WorkflowRunRecord
 } from '@/lib/types';
 import { getConfig } from '@/lib/env';
 import { createGoogleAuthClient } from '@/lib/google';
@@ -20,6 +21,21 @@ type ParsedSheet = {
     values: SheetRow;
   }>;
 };
+
+type SheetRowInput = Record<string, string>;
+
+const WORKFLOW_RUN_COLUMNS: Array<keyof WorkflowRunRecord> = [
+  'run_id',
+  'workflow_key',
+  'week_id',
+  'status',
+  'started_at',
+  'finished_at',
+  'error_message',
+  'output_summary'
+];
+
+const TREND_INPUT_COLUMNS = ['week_id', 'trend_text', 'source_query', 'raw_summary'];
 
 function createSheetsClient() {
   const auth = createGoogleAuthClient();
@@ -78,7 +94,7 @@ function parseTable(values: unknown[][] | undefined): ParsedSheet {
   return { headers, rows };
 }
 
-async function readSheet(sheetName: string) {
+export async function readSheetTable(sheetName: string) {
   const config = getConfig();
   const sheets = createSheetsClient();
   const response = await sheets.spreadsheets.values.get({
@@ -88,6 +104,97 @@ async function readSheet(sheetName: string) {
   });
 
   return parseTable(response.data.values as unknown[][] | undefined);
+}
+
+function buildRowValues(headers: string[], values: SheetRowInput) {
+  return headers.map((header) => normalizeCellValue(values[header] ?? ''));
+}
+
+async function ensureSheetHeaders(sheetName: string, headers: string[]) {
+  if (headers.length === 0) {
+    return;
+  }
+
+  const config = getConfig();
+  const sheets = createSheetsClient();
+  const parsed = await readSheetTable(sheetName);
+
+  if (parsed.headers.length > 0) {
+    return;
+  }
+
+  const endColumn = columnToLetter(headers.length);
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: config.spreadsheetId,
+    range: `${sheetName}!A1:${endColumn}1`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [headers]
+    }
+  });
+}
+
+export async function appendSheetRow(sheetName: string, headers: string[], values: SheetRowInput) {
+  const config = getConfig();
+  const sheets = createSheetsClient();
+
+  await ensureSheetHeaders(sheetName, headers);
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: config.spreadsheetId,
+    range: `${sheetName}!A:ZZ`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: {
+      values: [buildRowValues(headers, values)]
+    }
+  });
+}
+
+export async function upsertSheetRow(
+  sheetName: string,
+  keyColumn: string,
+  headers: string[],
+  values: SheetRowInput
+) {
+  const config = getConfig();
+  const sheets = createSheetsClient();
+  const parsed = await readSheetTable(sheetName);
+  const keyValue = normalizeCellValue(values[keyColumn]);
+
+  if (!keyValue) {
+    throw new Error(`Missing required key value for ${sheetName}.${keyColumn}`);
+  }
+
+  const targetRow = parsed.rows.find(
+    (row) => normalizeCellValue(row.values[keyColumn]) === keyValue
+  );
+
+  if (!targetRow) {
+    await appendSheetRow(sheetName, headers, values);
+    return { created: true as const };
+  }
+
+  const merged: SheetRowInput = {
+    ...targetRow.values,
+    ...values
+  };
+
+  const rowValues = parsed.headers.map((header) => normalizeCellValue(merged[header] ?? ''));
+  const endColumn = columnToLetter(parsed.headers.length);
+  const range = `${sheetName}!A${targetRow.rowNumber}:${endColumn}${targetRow.rowNumber}`;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: config.spreadsheetId,
+    range,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [rowValues]
+    }
+  });
+
+  return { created: false as const };
 }
 
 function splitCsvValue(value: string) {
@@ -202,7 +309,7 @@ function pickSelectedWeekId(weeks: WeekSummary[], requestedWeekId?: string | nul
 
 async function loadAssetsMap() {
   const config = getConfig();
-  const parsedAssets = await readSheet(config.assetsSheetName);
+  const parsedAssets = await readSheetTable(config.assetsSheetName);
   const map = new Map<string, AssetRecord>();
 
   for (const row of parsedAssets.rows) {
@@ -245,8 +352,68 @@ function buildAssetPreviews(assetIds: string, assetMap: Map<string, AssetRecord>
 
 async function loadReviewRows() {
   const config = getConfig();
-  const parsedReviewQueue = await readSheet(config.reviewQueueSheetName);
+  const parsedReviewQueue = await readSheetTable(config.reviewQueueSheetName);
   return parsedReviewQueue.rows;
+}
+
+export async function loadTrendInputs() {
+  const config = getConfig();
+  return readSheetTable(config.trendInputSheetName);
+}
+
+export async function loadWorkflowRuns() {
+  const config = getConfig();
+  const parsedRuns = await readSheetTable(config.workflowRunsSheetName);
+
+  return parsedRuns.rows
+    .map((row) => ({
+      run_id: normalizeCellValue(row.values.run_id),
+      workflow_key: normalizeCellValue(row.values.workflow_key) as WorkflowRunRecord['workflow_key'],
+      week_id: normalizeCellValue(row.values.week_id),
+      status: normalizeCellValue(row.values.status) as WorkflowRunRecord['status'],
+      started_at: normalizeCellValue(row.values.started_at),
+      finished_at: normalizeCellValue(row.values.finished_at),
+      error_message: normalizeCellValue(row.values.error_message),
+      output_summary: normalizeCellValue(row.values.output_summary)
+    }))
+    .filter((row) => Boolean(row.run_id));
+}
+
+export async function appendWorkflowRun(run: WorkflowRunRecord) {
+  const config = getConfig();
+  const values: SheetRowInput = {
+    run_id: run.run_id,
+    workflow_key: run.workflow_key,
+    week_id: run.week_id,
+    status: run.status,
+    started_at: run.started_at,
+    finished_at: run.finished_at,
+    error_message: run.error_message,
+    output_summary: run.output_summary
+  };
+
+  await appendSheetRow(config.workflowRunsSheetName, WORKFLOW_RUN_COLUMNS as string[], values);
+}
+
+export async function updateWorkflowRun(run: WorkflowRunRecord) {
+  const config = getConfig();
+  const values: SheetRowInput = {
+    run_id: run.run_id,
+    workflow_key: run.workflow_key,
+    week_id: run.week_id,
+    status: run.status,
+    started_at: run.started_at,
+    finished_at: run.finished_at,
+    error_message: run.error_message,
+    output_summary: run.output_summary
+  };
+
+  await upsertSheetRow(config.workflowRunsSheetName, 'run_id', WORKFLOW_RUN_COLUMNS as string[], values);
+}
+
+export async function appendTrendInput(values: SheetRowInput) {
+  const config = getConfig();
+  await appendSheetRow(config.trendInputSheetName, TREND_INPUT_COLUMNS, values);
 }
 
 export async function loadReviewContext(requestedWeekId?: string | null): Promise<ReviewContext> {
@@ -289,7 +456,7 @@ export async function loadReviewDraftById(draftId: string) {
 export async function updateReviewDraft(draftId: string, payload: ReviewPayload) {
   const config = getConfig();
   const sheets = createSheetsClient();
-  const parsedReviewQueue = await readSheet(config.reviewQueueSheetName);
+  const parsedReviewQueue = await readSheetTable(config.reviewQueueSheetName);
   const targetRow = parsedReviewQueue.rows.find((row) => normalizeCellValue(row.values.draft_id) === draftId);
 
   if (!targetRow) {
