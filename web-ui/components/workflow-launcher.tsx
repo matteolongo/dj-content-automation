@@ -7,18 +7,27 @@ const WORKFLOW_OPTIONS: Array<{
   key: WorkflowKey;
   label: string;
   description: string;
+  needsTrendQuery?: boolean;
+  needsDriveFolder?: boolean;
   needsTrendText?: boolean;
 }> = [
   {
+    key: 'trend_ingestion',
+    label: 'Trend ingestion',
+    description: 'Search the web for current trends and save to trends_input.',
+    needsTrendQuery: true
+  },
+  {
     key: 'weekly_strategy',
     label: 'Weekly strategy',
-    description: 'Build the theme and asset request from the trend note.',
+    description: 'Build the theme and asset request from trends_input.',
     needsTrendText: true
   },
   {
     key: 'asset_intake',
     label: 'Asset intake',
-    description: 'Pull new files from the weekly Drive folder.'
+    description: 'Pull new files from the Drive folder.',
+    needsDriveFolder: true
   },
   {
     key: 'content_generation',
@@ -39,7 +48,8 @@ const WORKFLOW_OPTIONS: Array<{
     key: 'full_pipeline',
     label: 'Run full pipeline',
     description: 'Strategy → asset intake → content generation → review queue.',
-    needsTrendText: true
+    needsTrendText: true,
+    needsDriveFolder: true
   }
 ];
 
@@ -53,6 +63,19 @@ function defaultWeekId() {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Madrid'
   }).format(new Date());
+}
+
+function defaultTrendQuery() {
+  const now = new Date();
+  const month = now.toLocaleString('en-US', { month: 'long', timeZone: 'Europe/Madrid' }).toLowerCase();
+  const year = now.getFullYear();
+  return `tiktok instagram reel trends underground electronic dj house music ${month} ${year}`;
+}
+
+function parseDriveFolderId(value: string): string {
+  const trimmed = value.trim();
+  const match = trimmed.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : trimmed;
 }
 
 function formatTime(value: string) {
@@ -98,8 +121,10 @@ function statusClass(status: string) {
 
 export function WorkflowLauncher() {
   const [weekId, setWeekId] = useState(defaultWeekId);
+  const [trendQuery, setTrendQuery] = useState(defaultTrendQuery);
   const [trendWhat, setTrendWhat] = useState('');
   const [trendWhy, setTrendWhy] = useState('');
+  const [driveFolderId, setDriveFolderId] = useState('');
   const [runs, setRuns] = useState<WorkflowRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<WorkflowKey | ''>('');
@@ -169,8 +194,13 @@ export function WorkflowLauncher() {
   async function startRun(workflowKey: WorkflowKey) {
     const workflow = WORKFLOW_OPTIONS.find((option) => option.key === workflowKey);
 
-    if (workflow?.needsTrendText && !trendWhat.trim()) {
-      setError('Trend text is required for Weekly Strategy and the Full Pipeline.');
+    if (workflow?.needsTrendQuery && !trendQuery.trim()) {
+      setError('Trend query is required for Trend Ingestion.');
+      return;
+    }
+
+    if (workflow?.needsDriveFolder && !driveFolderId.trim()) {
+      setError('Drive folder ID or URL is required for Asset Intake and Full Pipeline.');
       return;
     }
 
@@ -179,6 +209,15 @@ export function WorkflowLauncher() {
     setMessage('');
 
     try {
+      const composedTrendText = trendWhat.trim()
+        ? [
+            `What's trending: ${trendWhat.trim()}`,
+            trendWhy.trim() ? `Why it fits this artist: ${trendWhy.trim()}` : ''
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+        : '';
+
       const response = await fetch('/api/workflows/run', {
         method: 'POST',
         headers: {
@@ -187,14 +226,9 @@ export function WorkflowLauncher() {
         body: JSON.stringify({
           workflow_key: workflowKey,
           week_id: weekId.trim(),
-          trend_text: trendWhat.trim()
-            ? [
-                `What's trending: ${trendWhat.trim()}`,
-                trendWhy.trim() ? `Why it fits this artist: ${trendWhy.trim()}` : ''
-              ]
-                .filter(Boolean)
-                .join('\n\n')
-            : ''
+          trend_query: trendQuery.trim(),
+          trend_text: composedTrendText,
+          drive_folder_id: parseDriveFolderId(driveFolderId)
         })
       });
 
@@ -250,17 +284,37 @@ export function WorkflowLauncher() {
           </div>
 
           <div className="editor-form launcher-form">
+            <label>
+              <span>Week ID</span>
+              <input value={weekId} onChange={(event) => setWeekId(event.target.value)} />
+            </label>
+
             <div className="trend-input-block">
               <p className="trend-block-label">
-                Trend input
-                <em className="trend-required">Required for strategy steps</em>
+                Trend ingestion query
+                <em className="trend-required">Trend ingestion</em>
               </p>
               <label>
-                <span>What&apos;s trending this week</span>
+                <span>Search query <em className="field-optional">(editable)</em></span>
                 <textarea
-                  rows={3}
+                  rows={2}
+                  value={trendQuery}
+                  onChange={(event) => setTrendQuery(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="trend-input-block">
+              <p className="trend-block-label">
+                Manual trend override
+                <em className="trend-required">Weekly strategy</em>
+              </p>
+              <label>
+                <span>What&apos;s trending <em className="field-optional">(skip if ingestion ran)</em></span>
+                <textarea
+                  rows={2}
                   value={trendWhat}
-                  placeholder="e.g. slow-burn hypnotic sets, lo-fi club footage, crowd-less atmosphere shots…"
+                  placeholder="e.g. slow-burn hypnotic sets, lo-fi club footage…"
                   onChange={(event) => setTrendWhat(event.target.value)}
                 />
               </label>
@@ -269,16 +323,26 @@ export function WorkflowLauncher() {
                 <textarea
                   rows={2}
                   value={trendWhy}
-                  placeholder="e.g. aligns with the dark minimal direction, contrasts the usual polished DJ aesthetic…"
+                  placeholder="e.g. aligns with the dark minimal direction…"
                   onChange={(event) => setTrendWhy(event.target.value)}
                 />
               </label>
             </div>
 
-            <label>
-              <span>Week ID</span>
-              <input value={weekId} onChange={(event) => setWeekId(event.target.value)} />
-            </label>
+            <div className="trend-input-block">
+              <p className="trend-block-label">
+                Drive folder
+                <em className="trend-required">Asset intake</em>
+              </p>
+              <label>
+                <span>Folder ID or URL</span>
+                <input
+                  value={driveFolderId}
+                  placeholder="Paste a Drive folder ID or URL"
+                  onChange={(event) => setDriveFolderId(event.target.value)}
+                />
+              </label>
+            </div>
           </div>
         </div>
 

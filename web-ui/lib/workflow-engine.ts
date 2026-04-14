@@ -377,18 +377,115 @@ IMPORTANT:
   return { summary, weeklyPlan };
 }
 
-async function runAssetIntake(progress: WorkflowProgress) {
+async function runTrendIngestion(progress: WorkflowProgress, query: string) {
   const config = getConfig();
 
-  if (!config.driveAssetFolderId) {
-    throw new Error('Missing required environment variable: GOOGLE_DRIVE_ASSET_FOLDER_ID');
+  if (!config.tavilyApiKey) {
+    throw new Error('Missing required environment variable: TAVILY_API_KEY');
+  }
+
+  if (!config.openaiApiKey) {
+    throw new Error('Missing required environment variable: OPENAI_API_KEY');
+  }
+
+  progress.summary = 'Searching for trends';
+
+  const tavilyResponse = await fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.tavilyApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      query,
+      topic: 'general',
+      search_depth: 'basic',
+      max_results: 5
+    })
+  });
+
+  if (!tavilyResponse.ok) {
+    const text = await tavilyResponse.text();
+    throw new Error(`Tavily search failed (${tavilyResponse.status}): ${text}`);
+  }
+
+  const tavilyData = (await tavilyResponse.json()) as {
+    results?: Array<{ title?: string; url?: string; content?: string }>;
+  };
+
+  const results = Array.isArray(tavilyData.results) ? tavilyData.results : [];
+
+  if (results.length === 0) {
+    throw new Error('No results returned from Tavily search');
+  }
+
+  const simplified = results.map((r, index) => ({
+    rank: index + 1,
+    title: normalizeText(r.title),
+    url: normalizeText(r.url),
+    content: normalizeText(r.content)
+  }));
+
+  progress.summary = 'Summarizing trends with AI';
+
+  const prompt = `
+You are a social media trend analyst specialized in underground electronic music and DJ branding.
+
+Your task is to analyze web search results and extract only the trends that are relevant for a niche underground electronic DJ brand.
+
+BRAND CONTEXT:
+- Groovy, emotional electronic music
+- Underground, elegant, minimal, mysterious
+- Avoid generic influencer trends
+- Avoid meme-heavy trends
+- Focus on formats, hooks, and social patterns that can be adapted authentically
+
+SEARCH RESULTS:
+${JSON.stringify(simplified, null, 2)}
+
+OUTPUT FORMAT (STRICT JSON):
+{
+  "trend_text": "A concise summary of the most relevant social content trends for this week, in plain English, 80 to 140 words.",
+  "raw_summary": "A slightly longer explanation of why these trends matter for this DJ brand."
+}
+
+IMPORTANT:
+- Return ONLY valid JSON
+- No markdown
+- No explanations
+`;
+
+  const parsed = await callOpenAIJson(prompt);
+  const trendText = normalizeText(parsed.trend_text);
+  const rawSummary = normalizeText(parsed.raw_summary);
+
+  await appendTrendInput({
+    week_id: progress.weekId,
+    trend_text: trendText,
+    source_query: query,
+    raw_summary: rawSummary
+  });
+
+  return {
+    summary: `Trends ingested for ${progress.weekId} | ${truncate(trendText, 180)}`
+  };
+}
+
+async function runAssetIntake(progress: WorkflowProgress, folderId?: string) {
+  const config = getConfig();
+  const resolvedFolderId = folderId?.trim() || config.driveAssetFolderId;
+
+  if (!resolvedFolderId) {
+    throw new Error(
+      'Drive folder ID is required. Provide it in the UI or set GOOGLE_DRIVE_ASSET_FOLDER_ID in .env.'
+    );
   }
 
   const auth = createGoogleAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
   const response = await drive.files.list({
-    q: `'${config.driveAssetFolderId}' in parents and trashed = false`,
+    q: `'${resolvedFolderId}' in parents and trashed = false`,
     fields: 'files(id, name, mimeType, size, webViewLink, webContentLink, modifiedTime)',
     pageSize: 1000
   });
@@ -398,7 +495,7 @@ async function runAssetIntake(progress: WorkflowProgress) {
   );
 
   if (files.length === 0) {
-    throw new Error(`No assets found in Drive folder ${config.driveAssetFolderId}`);
+    throw new Error(`No assets found in Drive folder ${resolvedFolderId}`);
   }
 
   const assetRows = files.map((file) => {
@@ -671,10 +768,17 @@ async function runReadyToSchedule(progress: WorkflowProgress) {
 
 async function executeWorkflow(progress: WorkflowProgress, request: WorkflowRunRequest) {
   switch (progress.workflowKey) {
+    case 'trend_ingestion': {
+      const query = normalizeText(request.trend_query);
+      if (!query) {
+        throw new Error('trend_query is required for trend ingestion');
+      }
+      return runTrendIngestion(progress, query);
+    }
     case 'weekly_strategy':
       return runWeeklyStrategy(progress, request.trend_text);
     case 'asset_intake':
-      return runAssetIntake(progress);
+      return runAssetIntake(progress, request.drive_folder_id);
     case 'content_generation':
       return runContentGeneration(progress);
     case 'populate_review_queue':
@@ -683,7 +787,7 @@ async function executeWorkflow(progress: WorkflowProgress, request: WorkflowRunR
       return runReadyToSchedule(progress);
     case 'full_pipeline': {
       const weeklyStrategy = await runWeeklyStrategy(progress, request.trend_text);
-      const assetIntake = await runAssetIntake(progress);
+      const assetIntake = await runAssetIntake(progress, request.drive_folder_id);
       const contentGeneration = await runContentGeneration(progress);
       const reviewQueue = await runPopulateReviewQueue(progress);
 

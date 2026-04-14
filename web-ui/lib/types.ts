@@ -59,6 +59,7 @@ export interface ReviewContext {
 }
 
 export type WorkflowKey =
+  | 'trend_ingestion'
   | 'weekly_strategy'
   | 'asset_intake'
   | 'content_generation'
@@ -83,4 +84,6 @@ export interface WorkflowRunRequest {
   workflow_key: WorkflowKey;
   week_id?: string;
   trend_text?: string;
+  trend_query?: string;
+  drive_folder_id?: string;
 }
